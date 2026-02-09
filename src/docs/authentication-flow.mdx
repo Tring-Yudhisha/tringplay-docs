@@ -1,0 +1,231 @@
+# Authentication Flow
+
+This section details the authentication process for the application, covering both InPlayer and Cleeng provider integrations.
+
+## InPlayer Authentication
+
+### Sign In
+**Endpoint:** `POST https://services.inplayer.com/accounts/authenticate`
+
+**Description:** Entry point for all user-based features. Returns `access_token` required for Favorites, Watch History, Subscriptions, and DRM.
+
+**Payload:**
+```json
+{
+  "username": "user@email.com",
+  "password": "********",
+  "grant_type": "password",
+  "client_id": "a0d9a424-fee0-409b-9df4-3ce76ec4aa23"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "def50200a1b9...",
+  "expires_in": 3600,
+  "account": {
+    "id": 123456,
+    "email": "user@email.com"
+  }
+}
+```
+
+### Sign Up
+**Endpoint:** `POST https://services.inplayer.com/accounts`
+
+**Payload:**
+```json
+{
+  "full_name": "John Doe",
+  "username": "user@email.com",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "grant_type": "password",
+  "type": "consumer",
+  "client_id": "a0d9a424-fee0-409b-9df4-3ce76ec4aa23"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIs...",
+  "expires": 1752480000,
+  "timestamp": 1770373162,
+  "refresh_token": "def50200d8d7..."
+}
+```
+
+### Sign Out
+**Endpoint:** `POST https://services.inplayer.com/accounts/logout`
+
+**Headers:** `Authorization: Bearer <access_token>`
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+**Notes:** Clears server-side session. Client must also clear listed tokens and user state. Redirect to Home/Login.
+
+### Delete Account
+**Endpoint:** `POST https://staging-v2.inplayer.com/accounts/erase`
+
+**Headers:** `Authorization: Bearer <access_token>`, `Content-Type: application/json`
+
+**Payload:**
+```json
+{
+  "password": "*******"
+}
+```
+
+**Response:**
+```json
+{
+  "code": 200,
+  "message": "Account data was successfully erased."
+}
+```
+
+---
+
+## Cleeng Authentication
+
+### Sign In
+**Endpoint:** `POST https://mediastore.cleeng.com/auths`
+
+**Payload:**
+```json
+{
+  "email": "test@tringapps.com",
+  "password": "********",
+  "publisherId": "845345696" 
+}
+```
+*(publisherId depends on environment)*
+
+**Response:**
+```json
+{
+  "responseData": {
+    "jwt": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "0b98692e9583...",
+    "customerToken": "YtRXlTIAEPWY8RPc5zVxTe76Bn7DA3iuDQWiXJXfoQaWuF4o",
+    "customerId": 627588019
+  },
+  "errors": []
+}
+```
+**Notes:** `jwt` is used for all Cleeng API calls. `customerId` is needed for subscriptions and payments.
+
+---
+
+## Subscription & Billing
+
+### Get Subscriptions (InPlayer)
+**Endpoint:** `GET https://services.inplayer.com/subscriptions`
+
+**Headers:** `Authorization: Bearer <access_token>`
+
+**Response:**
+```json
+{
+  "collection": [
+    {
+      "id": 98765,
+      "item_id": 148332,
+      "status": "active",
+      "expires_at": 1760000000
+    }
+  ]
+}
+```
+
+### Get Subscriptions (Cleeng)
+**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/subscriptions`
+
+**Headers:** `Authorization: Bearer <jwt>`
+
+**Response:**
+```json
+{
+  "responseData": {
+    "items": [
+      {
+        "subscriptionId": 114413503,
+        "offerId": "S205171942_US",
+        "status": "cancelled",
+        "startedAt": 1769165481,
+        "expiresAt": 1771843881,
+        "nextPaymentPrice": 554.47,
+        "nextPaymentCurrency": "INR",
+        "paymentGateway": "adyen",
+        "paymentMethod": "card",
+        "offerTitle": "Table Tennis TV Monthly Subscription",
+        "period": "month",
+        "customerCurrency": "INR"
+      }
+    ]
+  },
+  "errors": []
+}
+```
+
+### Transactions (Cleeng)
+**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/transactions`
+
+**Headers:** `Authorization: Bearer <jwt>`
+
+**Response:**
+```json
+{
+  "responseData": {
+    "items": [
+      {
+        "transactionId": "T694438746",
+        "transactionDate": 1769165481,
+        "offerTitle": "Table Tennis TV Monthly Subscription",
+        "transactionPriceInclTax": "0.0000",
+        "transactionCurrency": "INR",
+        "paymentMethod": "card",
+        "customerEmail": "test03@tringapps.com",
+        "publisherId": 845345696
+      }
+    ]
+  },
+  "errors": []
+}
+```
+
+### Payment Details (Cleeng)
+**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/payment_details`
+
+**Headers:** `Authorization: Bearer <jwt>`
+
+**Response:**
+```json
+{
+  "responseData": {
+    "paymentDetails": [
+      {
+        "id": 155704035,
+        "paymentGateway": "adyen",
+        "paymentMethod": "card",
+        "paymentMethodSpecificParams": {
+          "variant": "visa",
+          "lastCardFourDigits": "****",
+          "holderName": "test test",
+          "cardExpirationDate": "0*/20**"
+        },
+        "active": true,
+        "subscriptionIds": [114413503]
+      }
+    ]
+  },
+  "errors": []
+}
+```

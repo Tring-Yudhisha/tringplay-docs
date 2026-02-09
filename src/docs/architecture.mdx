@@ -1,0 +1,132 @@
+# Architecture Overview
+
+## 3.1 Configuration-Driven Architecture
+
+TringPlay is powered by a central configuration file (referred to as **Remote Configuration**). This configuration controls:
+
+- Authentication type
+- Subscription provider
+- Feature availability
+- UI behavior
+- Theme and branding
+- Platform-specific behavior
+
+Configuration changes do not require a new build or app store resubmission.
+
+## 3.2 Backend Independence
+
+The TringPlay apps communicate through:
+
+- **Configurable API base URLs**
+- **Standardized response contracts**
+
+This allows:
+
+- Easy backend replacement or migration
+- Integration with custom or third-party CMS and user systems
+
+# Application Initialization
+
+## Firebase Remote Configuration
+
+**Purpose:** Controls runtime behavior and feature toggles dynamically.
+
+**Used For:**
+
+- Feature flags
+- Ads enablement
+- Custom parameters
+- Environment-specific behavior
+
+**API Endpoint:**
+
+```http
+POST https://firebaseremoteconfig.googleapis.com/v1/projects/{projectId}/namespaces/firebase:fetch
+```
+
+**Response:**
+
+- Remote configuration JSON
+- Feature enable/disable flags
+
+**Environments:** Development, Staging, Production
+
+## JW App Configuration
+
+**Purpose:** Defines application structure and content entry points.
+
+**API Endpoint:**
+
+```http
+GET https://cdn.jwplayer.com/apps/configs/{config_id}.json
+```
+
+**Used For:**
+
+- Menu structure
+- Homepage layout
+- Playlist references
+- Styling and branding
+- Integration IDs
+
+A single JW Property can host multiple apps (Dev, Staging, Production), selected using the `config_id`.
+
+# Feature Management (Feature Flags)
+
+TringPlay provides extensive feature flag support. All features can be turned ON/OFF dynamically without a new build.
+
+**Supported Features:**
+
+- Onboarding screens
+- Guest streaming
+- Search
+- Favorites
+- Continue Watching
+- Recommendations
+- Downloads
+- Multi-language support
+- Analytics & crash reporting
+- EPG & Live TV settings
+
+# UI, Branding & Theming
+
+## Theme Configuration
+
+- Primary & secondary colors
+- Background and text colors
+- Button and alert colors
+
+## UI Settings
+
+- Hero banners & carousels
+- Platform-specific UI flags
+- Onboarding screen configuration
+
+# Analytics & Monitoring
+
+Analytics providers can be enabled or disabled via configuration.
+
+**Supported Providers:**
+
+- Firebase Analytics
+- Google Analytics
+- Adobe Analytics (optional)
+- Crash analytics
+
+# CI/CD & Release Management
+
+## CI/CD Pipeline
+
+- Jenkins-based CI/CD
+- Automated build generation for all platforms
+
+## Versioning & Tagging
+
+- Release tags maintained for tracking
+- Clear separation of environments (Staging, QA, Production)
+
+# Scalability & Client Readiness
+
+- Currently supporting 20+ clients
+- Scalable architecture for rapid onboarding
+- Configuration-first approach minimizes development effort

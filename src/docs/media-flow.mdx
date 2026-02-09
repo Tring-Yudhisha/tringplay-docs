@@ -1,0 +1,246 @@
+# Media Flow
+
+This section details the media handling process, including App Initialization, Home Screen features, Details View logic, Search, and Playback Access.
+
+## App Initialization
+
+When the app loads, it fetches configuration from Firebase and JW Player to determine feature flags, custom parameters, and content structure.
+
+### Firebase Remote Config
+**URL:** `https://firebaseremoteconfig.googleapis.com/v1/projects/${projectId}/namespaces/firebase:fetch?key=${apiKey}`
+**Method:** `POST`
+
+**Payload:**
+```json
+{
+  "app_id": "config.appId",
+  "app_instance_id": "config.app_instance_id",
+  "app_instance_id_token": "token",
+  "language_code": "en-GB",
+  "sdk_version": "11.4.0"
+}
+```
+
+**Notes:** Used to fetch global remote configuration (Production, Staging, Dev).
+
+### JW Config Call
+**URL:** `https://cdn.jwplayer.com/apps/configs/{config_id}.json`
+**Method:** `GET`
+
+**Response:**
+```json
+{
+  "ad_schedule": "5wRT89gf",
+  "content": [
+    {
+      "content_id": "1q2w3e4r",
+      "title": "Awesome Movies",
+      "type": "playlist",
+      "featured": true
+    }
+  ],
+  "features": {
+    "continue_watching_list": "1q2w3e4r",
+    "favorites_list": "1q2w3e4r",
+    "recommendations_playlist": "1q2w3e4r",
+    "search_playlist": "1q2w3e4r"
+  },
+  "integrations": {
+    "cleeng": {
+      "monthly_offer": "S345534153_NL",
+      "yearly_offer": "S346369153_NL"
+    }
+  },
+  "menu": [
+    {
+      "content_id": "a1B2cDEF",
+      "label": "All Movies",
+      "type": "playlist"
+    }
+  ],
+  "styling": {
+    "background_color": "#FF0000",
+    "highlight_color": "FF0000"
+  }
+}
+```
+
+---
+
+## Home Screen
+
+### Menu
+**Source:** `menu` object from JW Config response.
+
+### Featured Section
+**Source:** `content` object from JW Config response.
+**Logic:** If `featured: true`, it's used in the Featured Carousel. Otherwise, it's a standard playlist.
+
+### Playlist Content
+**URL:** `https://cdn.jwplayer.com/v2/playlists/{playlist_id}`
+**Method:** `GET`
+
+**Response:**
+```json
+{
+  "title": "Top 10 Movies",
+  "playlist": [
+    {
+      "title": "The Walking Dead",
+      "mediaid": "AfBxLygN",
+      "image": "...",
+      "sources": [...]
+    }
+  ]
+}
+```
+
+### Favorites
+**Execution Flow:**
+1. App reads `features.favoritesList` (Watchlist ID) from JW Config.
+2. User's favorite media IDs are fetched from InPlayer.
+3. Media metadata is resolved via JW Player Watchlist API.
+
+**Step 1: Get Favorites (InPlayer)**
+- **URL:** `GET https://services.inplayer.com/v2/accounts/media/favorites`
+- **Header:** `Authorization: Bearer <token>`
+- **Response:** `{"collection": [{ "media_id": "YvRgLFCV" }]}`
+
+**Step 2: Resolve Metadata (JW Player)**
+- **URL:** `GET https://cdn.jwplayer.com/apps/watchlists/{favoritesList}?media_ids={id1},{id2}`
+- **Response:** JSON with full media details for rendering.
+
+### Continue Watching
+**Execution Flow:**
+1. App reads `features.continueWatchingList` (Watchlist ID) from JW Config.
+2. User's watch history (with progress) is fetched from InPlayer.
+3. Media metadata is resolved via JW Player Watchlist API.
+4. Progress is merged client-side.
+
+**Step 1: Get History (InPlayer)**
+- **URL:** `GET https://services.inplayer.com/v2/accounts/media/watch-history?filter=currently_watching`
+- **Header:** `Authorization: Bearer <token>`
+- **Response:** `{"collection": [{ "media_id": "bPGQut6P", "progress": 0.59 }]}`
+
+**Step 2: Resolve Metadata (JW Player)**
+- **URL:** `GET https://cdn.jwplayer.com/apps/watchlists/{continueWatchingList}?media_ids={id1},{id2}`
+
+---
+
+## Details Screen
+
+### Media Details
+**URL:** `https://cdn.jwplayer.com/v2/media/{media_id}`
+**Method:** `GET`
+
+**Response:**
+```json
+{
+  "title": "Cosmos Laundromat",
+  "description": "...",
+  "kind": "Single Item",
+  "playlist": [...]
+}
+```
+
+### Series Details
+**URL:** `https://cdn.jwplayer.com/apps/series/{mediaId}`
+**Method:** `GET`
+
+**Response:**
+```json
+{
+  "kind": "series",
+  "title": "Demon Slayer",
+  "seasons": [
+    { "season_number": 1, "episode_count": 26 },
+    { "season_number": 2, "episode_count": 18 }
+  ]
+}
+```
+**Notes:** Used to build Season tabs.
+
+### Episodes
+**URL:** `https://cdn.jwplayer.com/apps/series/{mediaId}/seasons/{seasonNumber}/episodes`
+**Params:** `page_offset=0`, `page_limit=20`
+**Method:** `GET`
+
+**Response:**
+```json
+{
+  "episodes": [
+    {
+      "episode_number": 1,
+      "media_item": {
+        "mediaid": "hkJH3ic1",
+        "title": "Demon Slayer Ep - 01"
+      }
+    }
+  ]
+}
+```
+**Notes:** Called when a Season tab is selected.
+
+### Related Movies
+**URL:** `https://cdn.jwplayer.com/v2/playlists/{playlistId}?related_media_id={mediaId}`
+**Method:** `GET`
+**Notes:** Requires a configured "Related" playlist in JW Dashboard.
+
+---
+
+## Search
+
+**URL:** `https://cdn.jwplayer.com/v2/playlists/{searchId}?search={searchKey}`
+**Method:** `GET`
+
+**Response:**
+```json
+{
+  "title": "Search Results",
+  "playlist": [
+    {
+      "title": "Result 1",
+      "mediaid": "Vx9Qe2La",
+      "contentType": "series"
+    }
+  ]
+}
+```
+**Notes:** `searchId` comes from JW Config `features.search_playlist`.
+
+---
+
+## Playback Access
+
+### Content Access Check
+**Endpoint:** `GET https://services.inplayer.com/items/{productId}/access`
+
+**Headers:** `Authorization: Bearer <access_token>`
+
+**Response:**
+```json
+{
+  "access": true,
+  "expires_at": 1760000000
+}
+```
+**Notes:** Checked before playback to determine if a DRM token can be requested.
+
+### DRM Token
+**Endpoint:** `POST https://services.inplayer.com/v2/items/jw-media/token`
+
+**Payload:**
+```json
+{
+  "media_id": "hkJH3ic1"
+}
+```
+
+**Response:**
+```json
+{
+  "token": "drm_token_value",
+  "expires_at": 1760000000
+}
+```
+**Notes:** Mandatory for secure streams. Used with JW Player DRM playback URL.

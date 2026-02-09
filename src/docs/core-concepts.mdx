@@ -1,0 +1,70 @@
+# Core Concepts
+
+## Content Types Supported
+
+TringPlay supports a wide range of content formats:
+
+- VOD (Video on Demand)
+- SVOD (Subscription Video on Demand)
+- Live Streaming
+- EPG (Electronic Program Guide)
+- Catch-up TV
+- Audio-only content (Podcasts)
+- Content Hubs & Collections
+
+### DRM Support
+
+- DRM-protected content
+- Non-DRM content
+- Configurable DRM policies per content type
+
+## Media & Player Integration
+
+**Primary Media Provider:** JW Player
+
+### Player Types
+- **Default Player**
+- **Custom Player** (for selected TV platforms)
+
+### JW Player Partnership
+- Direct integration with JW Player APIs
+- Faster resolution of JW-related issues
+- Support for JW staging and production environments
+
+JW Player is used for:
+
+- Media metadata
+- Playlists and hubs
+- Media delivery
+- DRM-protected playback
+- CSAI and SSAI advertising
+
+Official JW APIs are referenced rather than duplicated.
+
+## Playback
+
+**Provider:** JW Player
+
+**Playback Flow:**
+
+1. Authentication validation
+2. Subscription entitlement validation
+3. Playback JSON fetch
+4. DRM enforcement (if enabled)
+5. CSAI / SSAI ad insertion
+6. Playback starts
+
+## Advertising
+
+**Provider:** JW Player
+
+**Supported:**
+
+- Client-Side Ad Insertion (CSAI)
+- Server-Side Ad Insertion (SSAI)
+
+**Configuration:**
+
+- Global or content-level settings
+- Ad targeting keys (video, platform, user type)
+- JW Player ad integrations

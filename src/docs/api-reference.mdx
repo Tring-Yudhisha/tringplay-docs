@@ -1,0 +1,245 @@
+This data has been organized into a structured MDX format. I have grouped the endpoints by provider (**InPlayer** and **Cleeng**) and used components/markdown features that are standard in documentation sites like Docusaurus or Next.js.
+
+```mdx
+# API Documentation
+
+This document outlines the authentication and user-management endpoints for both **InPlayer** and **Cleeng** service providers.
+
+---
+
+## InPlayer Services
+
+### Sign In
+**Screen:** `Sign In screen`  
+**Feature:** Authentication
+
+- **URL:** `POST https://services.inplayer.com/accounts/authenticate`
+- **Provider:** InPlayer
+
+#### Request Payload
+```json
+{
+  "username": "user@email.com",
+  "password": "********",
+  "grant_type": "password",
+  "client_id": "a0d9a424-fee0-409b-9df4-3ce76ec4aa23"
+}
+
+```
+
+#### Response
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "def50200a1b9...",
+  "expires_in": 3600,
+  "account": {
+    "id": 123456,
+    "email": "user@email.com"
+  }
+}
+
+```
+
+> **Notes:**
+> * Entry point for all user-based features.
+> * `access_token` is required for Favorites, Watch History, Subscriptions, and DRM Tokens.
+> * Token is stored in **Redux / Local storage**.
+> 
+> 
+
+---
+
+### Sign Up
+
+**Screen:** `Sign Up screen`
+
+* **URL:** `POST https://services.inplayer.com/accounts`
+* **Payload Parameters:** `full_name`, `username`, `password`, `password_confirmation`, `grant_type`, `type`, `client_id`
+
+#### Response
+
+```json
+{
+  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6ImFiOWMwMDA2LTgzYWYtNDEzNS04NmRiLWU3YjlkZjQ1NDI1OCJ9...",
+  "expires": 1752480000,
+  "timestamp": 1770373162,
+  "refresh_token": "def50200d8d71..."
+}
+
+```
+
+---
+
+### Sign Out
+
+**Screen:** `Settings`
+
+* **URL:** `POST https://services.inplayer.com/accounts/logout`
+* **Header:** `Authorization: Bearer <access_token>`
+
+#### Response
+
+```json
+{
+  "success": true
+}
+
+```
+
+> **Notes:**
+> 1. Clears server-side session.
+> 2. App must manually clear `access_token` and User state.
+> 3. Redirects to Home / Login screen.
+> 
+> 
+
+---
+
+### Get Subscriptions (InPlayer)
+
+**Screen:** `Account / Subscription`
+
+* **URL:** `GET https://services.inplayer.com/subscriptions`
+* **Header:** `Authorization: Bearer <access_token>`
+
+#### Response
+
+```json
+{
+  "collection": [
+    {
+      "id": 98765,
+      "item_id": 148332,
+      "status": "active",
+      "expires_at": 1760000000
+    }
+  ]
+}
+
+```
+
+---
+
+### Favorites
+
+**Screen:** `Home / Details`
+
+* **URL:** `GET https://services.inplayer.com/v2/accounts/media/favorites`
+
+> **Note:** Returns only media IDs; metadata must be fetched from JW Player.
+
+---
+
+### Watch History
+
+**Screen:** `Home / Details`
+
+* **URL:** `GET https://services.inplayer.com/v2/accounts/media/watch-history?filter=currently_watching`
+
+#### Response
+
+```json
+{
+  "collection": [
+    {
+      "media_id": "hkJH3ic1",
+      "progress": 0.82,
+      "updated_at": 1764272144
+    }
+  ]
+}
+
+```
+
+---
+
+### Content Access & DRM
+
+| Feature | Method | URL |
+| --- | --- | --- |
+| **Access Check** | `GET` | `/items/{productId}/access` |
+| **DRM Token** | `POST` | `/v2/items/jw-media/token` |
+
+---
+
+### Delete Account
+
+**Screen:** `Account Settings / Profile`
+
+* **URL:** `POST https://staging-v2.inplayer.com/accounts/erase`
+* **Payload:** `{ "password": "*******" }`
+
+> **Warning:** This action is permanent and cannot be undone. All favorites and history will be removed.
+
+---
+
+## Cleeng Services
+
+### Cleeng Sign In (Auth)
+
+**Screen:** `Sign In screen`
+
+* **URL:** `POST https://mediastore.cleeng.com/auths`
+
+#### Request Payload
+
+```json
+{
+  "email": "test@tringapps.com",
+  "password": "********",
+  "publisherId": "845345696" 
+}
+
+```
+
+#### Response
+
+```json
+{
+  "responseData": {
+    "jwt": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "refreshToken": "0b98692e9583...",
+    "customerToken": "YtRXlTIAEPWY8RPc5zVx...",
+    "customerId": 627588019
+  },
+  "errors": []
+}
+
+```
+
+---
+
+### Get Subscriptions (Cleeng)
+
+**Screen:** `Account / Subscription`
+
+* **URL:** `GET https://mediastore.cleeng.com/customers/{customerId}/subscriptions`
+* **Header:** `Authorization: Bearer <jwt>`
+
+#### Status Types
+
+* `active`
+* `cancelled`
+* `expired`
+
+---
+
+### Payment & Transactions
+
+#### Transactions
+
+* **URL:** `GET https://mediastore.cleeng.com/customers/{customerId}/transactions`
+* **Use Case:** Billing history (Read-only).
+
+#### Payment Details
+
+* **URL:** `GET https://mediastore.cleeng.com/customers/{customerId}/payment_details`
+* **Note:** Used to show saved methods. No full card numbers are ever exposed.
+
+```
+
+Would you like me to add a comparison table for the common features between InPlayer and Cleeng?
+
+```
