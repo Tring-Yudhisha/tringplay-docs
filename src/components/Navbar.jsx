@@ -1,14 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Menu, X, Github } from 'lucide-react';
 import { useState } from 'react';
-import ThemeToggle from './ThemeToggle';
 import logo from "../assets/tringplay.svg"
 export default function Navbar({ onMenuClick, isSidebarOpen }) {
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-slate-900/60 transition-colors">
+        <header className="sticky top-0 z-50 w-full border-b border-slate-700 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60 transition-colors">
             <div className="container flex h-14 items-center pl-4 pr-14 md:pl-8">
                 <button
-                    className="mr-2 inline-flex md:hidden items-center justify-center rounded-md p-2 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none"
+                    className="mr-2 inline-flex md:hidden items-center justify-center rounded-md p-2 text-slate-200 hover:bg-slate-800 focus:outline-none"
                     onClick={onMenuClick}
                 >
                     {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
@@ -16,7 +15,7 @@ export default function Navbar({ onMenuClick, isSidebarOpen }) {
 
                 <div className="mr-4 flex">
                     <Link to="/" className="mr-6 flex items-center space-x-2">
-                        <span className="hidden font-bold sm:inline-block text-xl text-indigo-600 dark:text-indigo-400">
+                        <span className="hidden font-bold sm:inline-block text-xl text-indigo-300">
                             <img src={logo} className='h-10' />
                         </span>
                     </Link>

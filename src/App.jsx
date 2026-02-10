@@ -89,87 +89,72 @@ const components = {
   code: CodeBlock,
 };
 
-// =====================================================
-// DocPage
-// =====================================================
+/**
+ * DocPage Component
+ * Uses the URL param to select the correct pre-defined lazy component.
+ */
 function DocPage() {
-  const { slug } = useParams();
+  const { slug } = useParams(); // Grabs the '' from /docs/
   const Content = lazyDocMap[slug];
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [slug]);
 
-  const currentIndex = navItems.findIndex(
-    (item) => item.path === `/docs/${slug}`
-  );
-
+  const currentIndex = navItems.findIndex(item => item.path === `/docs/${slug}`);
   const prev = navItems[currentIndex - 1];
   const next = navItems[currentIndex + 1];
 
   if (!Content) {
-    return <div className="p-8">404 – Document not found</div>;
+    return <div className="p-8">404 - Document not found</div>;
   }
 
   return (
-    <div
-      className="
-        prose max-w-none
-        text-slate-800 dark:text-slate-200
-        prose-headings:text-indigo-600 dark:prose-headings:text-indigo-400
-        prose-p:text-gray-600 dark:prose-p:text-gray-400
-        prose-a:text-pink-600 hover:prose-a:text-pink-500
-        prose-strong:text-slate-900 dark:prose-strong:text-white
-      "
-    >
+    <div className="
+    prose max-w-none 
+    /* Base Text Color */
+    text-slate-200
+    
+    /* Heading Colors */
+    prose-headings:text-indigo-300
+    
+    /* Paragraph Colors */
+    prose-p:text-gray-300
+    
+    /* Link Colors */
+    prose-a:text-pink-400 hover:prose-a:text-pink-300
+    
+    /* Bold text (strong) */
+    prose-strong:text-white
+  ">      {/* The 'key' prop on Suspense ensures that when the slug changes, 
+        the old content is fully unmounted and the new one starts fresh.
+      */}
       <Suspense
-        key={slug}
         fallback={
-          <div className="flex items-center justify-center min-h-[80vh] w-[70vw]">
-            <svg
-              className="animate-spin h-10 w-10 text-black dark:text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
+          <div className="flex flex-col items-center justify-center min-h-[80vh] w-[70vw]">
+            {/* Professional Spinner - Gray track with Black spinning head */}
+            <svg className="animate-spin h-10 w-10 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           </div>
         }
+        key={slug}
       >
         <Content />
       </Suspense>
 
-      <div className="mt-10 flex justify-between border-t border-slate-200 pt-6 dark:border-slate-800">
+      <div className="mt-10 flex justify-between border-t border-slate-700 pt-6">
         {prev ? (
-          <Link
-            to={prev.path}
-            className="text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400"
-          >
-            ← {prev.label}
+          <Link to={prev.path} className="flex flex-col text-sm font-semibold text-slate-300 hover:text-indigo-300">
+            {/* <span className="text-xs text-slate-500 font-normal mb-1">Previous</span> */}
+            <span>&larr; {prev.label}</span>
           </Link>
-        ) : (
-          <div />
-        )}
-
+        ) : <div />}
         {next && (
-          <Link
-            to={next.path}
-            className="text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400"
-          >
-            {next.label} →
+          <Link to={next.path} className="flex flex-col items-end text-sm font-semibold text-slate-300 hover:text-indigo-300">
+            {/* <span className="text-xs text-slate-500 font-normal mb-1">Next</span> */}
+            <span>{next.label} &rarr;</span>
           </Link>
         )}
       </div>
@@ -177,27 +162,26 @@ function DocPage() {
   );
 }
 
-// =====================================================
-// App
-// =====================================================
 function App() {
   return (
-    <ThemeProvider>
-      <Router>
-        <MDXProvider components={components}>
-          <Layout sidebarItems={sidebarItems}>
-            <Routes>
-              <Route
-                path="/"
-                element={<Navigate to="/docs/getting-started" replace />}
-              />
-              <Route path="/docs/:slug" element={<DocPage />} />
-              <Route path="*" element={<div className="p-8">Page Not Found</div>} />
-            </Routes>
-          </Layout>
-        </MDXProvider>
-      </Router>
-    </ThemeProvider>
+    <Router>
+      <MDXProvider components={components}>
+        <Layout sidebarItems={sidebarItems}>
+          <Routes>
+            {/* Redirect root to your first doc */}
+            <Route path="/" element={<Navigate to="/docs/getting-started" replace />} />
+
+            {/* The :slug parameter allows us to capture the filename 
+               and pass it directly to DocPage.
+            */}
+            <Route path="/docs/:slug" element={<DocPage />} />
+
+            {/* Catch-all for 404s */}
+            <Route path="*" element={<div className="p-8">Page Not Found</div>} />
+          </Routes>
+        </Layout>
+      </MDXProvider>
+    </Router>
   );
 }
 
