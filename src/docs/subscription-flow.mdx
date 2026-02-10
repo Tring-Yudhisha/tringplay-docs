@@ -1,0 +1,108 @@
+# Subscription & Billing
+
+This section details the Subscription process for the application, covering both InPlayer and Cleeng provider integrations.
+
+
+### Get Subscriptions (InPlayer)
+**Endpoint:** `GET https://services.inplayer.com/subscriptions`
+
+**Headers:** `Authorization: Bearer <access_token>`
+
+**Response:**
+```json
+{
+  "collection": [
+    {
+      "id": 98765,
+      "item_id": 148332,
+      "status": "active",
+      "expires_at": 1760000000
+    }
+  ]
+}
+```
+
+### Get Subscriptions (Cleeng)
+**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/subscriptions`
+
+**Headers:** `Authorization: Bearer <jwt>`
+
+**Response:**
+```json
+{
+  "responseData": {
+    "items": [
+      {
+        "subscriptionId": 114413503,
+        "offerId": "S205171942_US",
+        "status": "cancelled",
+        "startedAt": 1769165481,
+        "expiresAt": 1771843881,
+        "nextPaymentPrice": 554.47,
+        "nextPaymentCurrency": "INR",
+        "paymentGateway": "adyen",
+        "paymentMethod": "card",
+        "offerTitle": "Table Tennis TV Monthly Subscription",
+        "period": "month",
+        "customerCurrency": "INR"
+      }
+    ]
+  },
+  "errors": []
+}
+```
+
+### Transactions (Cleeng)
+**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/transactions`
+
+**Headers:** `Authorization: Bearer <jwt>`
+
+**Response:**
+```json
+{
+  "responseData": {
+    "items": [
+      {
+        "transactionId": "T694438746",
+        "transactionDate": 1769165481,
+        "offerTitle": "Table Tennis TV Monthly Subscription",
+        "transactionPriceInclTax": "0.0000",
+        "transactionCurrency": "INR",
+        "paymentMethod": "card",
+        "customerEmail": "test03@tringapps.com",
+        "publisherId": 845345696
+      }
+    ]
+  },
+  "errors": []
+}
+```
+
+### Payment Details (Cleeng)
+**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/payment_details`
+
+**Headers:** `Authorization: Bearer <jwt>`
+
+**Response:**
+```json
+{
+  "responseData": {
+    "paymentDetails": [
+      {
+        "id": 155704035,
+        "paymentGateway": "adyen",
+        "paymentMethod": "card",
+        "paymentMethodSpecificParams": {
+          "variant": "visa",
+          "lastCardFourDigits": "****",
+          "holderName": "test test",
+          "cardExpirationDate": "0*/20**"
+        },
+        "active": true,
+        "subscriptionIds": [114413503]
+      }
+    ]
+  },
+  "errors": []
+}
+```
