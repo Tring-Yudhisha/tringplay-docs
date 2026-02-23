@@ -7,7 +7,7 @@ This section details the media handling process, including App Initialization, H
 When the app loads, it fetches configuration from Firebase and JW Player to determine feature flags, custom parameters, and content structure.
 
 ### Firebase Remote Config
-**URL:** `https://firebaseremoteconfig.googleapis.com/v1/projects/${projectId}/namespaces/firebase:fetch?key=${apiKey}`
+**Request URL:** `https://firebaseremoteconfig.googleapis.com/v1/projects/${projectId}/namespaces/firebase:fetch?key=${apiKey}`
 **Method:** `POST`
 
 **Payload:**
@@ -21,200 +21,561 @@ When the app loads, it fetches configuration from Firebase and JW Player to dete
 }
 ```
 
-**Notes:** Used to fetch global remote configuration (Production, Staging, Dev).
+**Response:**
+```json
+{
+  "entries": {
+    "analytics_config": "{ ... }",
+    "android_config": "{ ... }",
+    "android_tv_theme": "{ ... }",
+    "global_remote_config": "{ ... }",
+    "global_remote_config_staging": "{ ... }",
+    "global_remote_config_cleeng": "{ ... }",
+    "global_remote_config_dev": "{ ... }",
+    "global_remote_config_test": "{ ... }",
+    "global_remote_config_webtv": "{ ... }",
+    "global_remote_config_Automation": "{ ... }",
+    "ios_config": "{ ... }",
+    "remote_config": "{ ... }",
+    "roku_config": "{ ... }",
+    "tv_config": "{ ... }",
+    "web_config": "{ ... }",
+    "web_config_TV": "{ ... }",
+    "web_config_TV_dev": "{ ... }",
+    "web_config_TV_test": "{ ... }",
+    "web_config_TV_test_cleeng": "{ ... }",
+    "web_theme_config": "{ ... }",
+    "web_tv_theme": "{ ... }"
+  },
+  "state": "UPDATE",
+  "templateVersion": "1948"
+}
+```
+
+**Notes:** Based on the environment, the app uses the corresponding entry from entries:
+- **Development:** `global_remote_config_dev`
+- **Staging:** `global_remote_config_staging`
+- **Production:** `global_remote_config`
+
+Firebase Remote Config is used to supply the JW config_id and other flags.
 
 ### JW Config Call
-**URL:** `https://cdn.jwplayer.com/apps/configs/{config_id}.json`
+**Request URL:** `https://cdn.jwplayer.com/apps/configs/{config_id}.json`
 **Method:** `GET`
 
 **Response:**
 ```json
 {
-  "ad_schedule": "5wRT89gf",
+  "adConfig": null,
+  "adDeliveryMethod": "csai",
+  "adSchedule": null,
+  "analyticsToken": "Analytics_Token",
+  "assets": { "banner": null },
   "content": [
     {
-      "content_id": "1q2w3e4r",
-      "title": "Awesome Movies",
-      "type": "playlist",
-      "featured": true
-    }
+      "contentId": "xaCDDmsj",
+      "custom": {},
+      "enableText": false,
+      "featured": true,
+      "filterTags": "landing",
+      "title": "Live and Upcoming",
+      "type": "playlist"
+    },
+    "..."
   ],
+  "contentProtection": {
+    "accessModel": "authvod",
+    "drm": { "defaultPolicyId": "" }
+  },
+  "custom": {},
+  "description": "",
   "features": {
-    "continue_watching_list": "1q2w3e4r",
-    "favorites_list": "1q2w3e4r",
-    "recommendations_playlist": "1q2w3e4r",
-    "search_playlist": "1q2w3e4r"
+    "continueWatchingList": "WAGTlDJq",
+    "favoritesList": "6Caha2s8",
+    "recommendationsPlaylist": "XiwS5yK0",
+    "searchPlaylist": "G6CIE2Z4",
+    "..."
   },
   "integrations": {
     "cleeng": {
-      "monthly_offer": "S345534153_NL",
-      "yearly_offer": "S346369153_NL"
+      "id": "812328530",
+      "useSandbox": true,
+      "..."
     }
   },
   "menu": [
-    {
-      "content_id": "a1B2cDEF",
-      "label": "All Movies",
-      "type": "playlist"
-    }
+    { "contentId": "2gNQCcXt", "label": "Leagues ", "type": "playlist" },
+    "..."
   ],
-  "styling": {
-    "background_color": "#FF0000",
-    "highlight_color": "FF0000"
-  }
+  "player": null,
+  "siteId": "EaCZAOXA",
+  "siteName": "Example Site",
+  "styling": { "..." },
+  "version": "2"
 }
 ```
+**Notes:** The config_id in the URL comes from Firebase remote config (e.g. jwplayer.config_id). The response drives the app layout: content for home and landing sections, menu for navigation, features for favorites and continue-watching and search list IDs, and integrations for auth (e.g. Cleeng,inplayer).
 
 ---
 
 ## Home Screen
 
-### Menu
-**Source:** `menu` object from JW Config response.
 
+### Menu
+
+The menu comes from the menu array in the JW Config response. The app uses it to build the main navigation (e.g. sidebar or top bar). The order of items in the array is the order shown in the UI.
+
+Each menu item has:
+- contentId: ID used to load the content (playlist, media, or watchlist).
+- label: Text shown in the navigation.
+- type: Usually playlist or media; tells the app how to load the item (playlist by ID, single media, etc.).
+- filterTags (optional): Used to filter content.
+- custom (optional): Extra config for the item.
+
+When the user selects a menu item, the app uses contentId and type to fetch and show the right content.
+
+Example (from JW Config response):
+
+```json
+"menu": [
+  {
+    "contentId": "2gNQCcXt",
+    "custom": {},
+    "filterTags": "",
+    "label": "Leagues ",
+    "type": "playlist"
+  },
+  {
+    "contentId": "cKLiHMnf",
+    "custom": {},
+    "filterTags": "live-event",
+    "label": "Live ",
+    "type": "playlist"
+  }
+]
+```
+
+Here, "Leagues" and "Live" are two nav items; both are playlists. Selecting "Leagues" loads the playlist with ID 2gNQCcXt; selecting "Live" loads the playlist cKLiHMnf (with filterTags "live-event" applied if the app uses it).
 ### Featured Section
-**Source:** `content` object from JW Config response.
-**Logic:** If `featured: true`, it's used in the Featured Carousel. Otherwise, it's a standard playlist.
+
+On the landing page, the rows (carousels and shelves) come from the app config response under the key content. Each item in content has contentId, title, type (e.g. playlist, favorites, continue_watching), featured, filterTags, and optional custom and enableText.
+
+For items with type playlist, the app calls the playlist API using the contentId to load the playlist. If an item has featured: true, it is shown in the featured section (typically rendered as one large carousel at the top). All other items are shown as rows below in the order they appear in content. Items with type favorites or continue_watching use the features list IDs from the config and their own APIs (see Favorites and Continue Watching below).
+
+Example (content from app config response):
+
+```json
+"content": [
+  {
+    "contentId": "xaCDDmsj",
+    "custom": {},
+    "enableText": false,
+    "featured": true,
+    "filterTags": "landing",
+    "title": "Live and Upcoming",
+    "type": "playlist"
+  },
+  {
+    "contentId": "nw9jNeKB",
+    "custom": {},
+    "enableText": false,
+    "featured": false,
+    "filterTags": "landing",
+    "title": "Recent Events",
+    "type": "playlist"
+  },
+  {
+    "contentId": "6Caha2s8",
+    "custom": {},
+    "enableText": false,
+    "featured": false,
+    "filterTags": "",
+    "title": "Favorites",
+    "type": "favorites"
+  },
+  {
+    "contentId": "WAGTlDJq",
+    "custom": {},
+    "enableText": false,
+    "featured": false,
+    "filterTags": "",
+    "title": "Continue Watching",
+    "type": "continue_watching"
+  },
+  "..."
+]
+```
+
+Here, only "Live and Upcoming" has featured: true, so it is shown in the featured section (one large carousel). The rest are shown as rows; for type playlist the app calls the playlist API with the contentId; for favorites and continue_watching the app uses the respective list APIs.
 
 ### Playlist Content
-**URL:** `https://cdn.jwplayer.com/v2/playlists/{playlist_id}`
+
+For each content or menu item with type playlist, the app loads the playlist by calling this API with the item’s contentId as playlist_id. The response is the playlist metadata and an array of media items (title, mediaid, image, sources, etc.) used to render the row or carousel. Pagination is supported via query params page_limit and page_offset; the response includes links (first, last, next) for paged requests.
+
+**Request URL:** `https://cdn.jwplayer.com/v2/playlists/{playlist_id}`
 **Method:** `GET`
 
 **Response:**
 ```json
 {
   "title": "Top 10 Movies",
+  "description": "",
+  "kind": "MANUAL",
+  "feedid": "HEDMmLUw",
+  "links": {
+    "first": "https://cdn.jwplayer.com/v2/playlists/HEDMmLUw?page_limit=5&page_offset=1&format=json&internal=false",
+    "last": "...",
+    "next": "..."
+  },
   "playlist": [
     {
-      "title": "The Walking Dead",
+      "title": "The Walking dead ",
       "mediaid": "AfBxLygN",
-      "image": "...",
-      "sources": [...]
-    }
-  ]
+      "image": "https://cdn.jwplayer.com/v2/media/AfBxLygN/poster.jpg?width=720",
+      "duration": 63,
+      "contentType": "movie",
+      "description": "...",
+      "sources": [
+        { "file": "https://cdn.jwplayer.com/manifests/AfBxLygN.m3u8", "type": "application/vnd.apple.mpegurl" },
+        { "file": "https://cdn.jwplayer.com/videos/AfBxLygN-vtFhjetX.mp4", "type": "video/mp4", "label": "720p", "..." }
+      ],
+      "tracks": [...],
+      "productIds": "145379",
+      "..."
+    },
+    "..."
+  ],
+  "feed_instance_id": "afb71748-be94-46d9-a151-f1754656fa34",
+  "show_title": "true",
+  "shelfImageAspectRatio": "9:16",
+  "railType": "vertical"
 }
 ```
 
-### Favorites
 **Execution Flow:**
-1. App reads `features.favoritesList` (Watchlist ID) from JW Config.
-2. User's favorite media IDs are fetched from InPlayer.
-3. Media metadata is resolved via JW Player Watchlist API.
+1. App reads contentId (or menu item’s contentId) from JW Config content/menu.
+2. App calls the Playlist API with that ID as playlist_id.
+3. Response provides playlist metadata and playlist array of media items; optional links and page_limit/page_offset support pagination.
 
-**Step 1: Get Favorites (InPlayer)**
-- **URL:** `GET https://services.inplayer.com/v2/accounts/media/favorites`
-- **Header:** `Authorization: Bearer <token>`
-- **Response:** `{"collection": [{ "media_id": "YvRgLFCV" }]}`
+**Notes:** playlist_id is the contentId from the content or menu item. Each entry in playlist has mediaid, title, image, sources (for playback), and optional productIds for access checks. Use the links object and page_limit/page_offset when you need more items.
 
-**Step 2: Resolve Metadata (JW Player)**
-- **URL:** `GET https://cdn.jwplayer.com/apps/watchlists/{favoritesList}?media_ids={id1},{id2}`
-- **Response:** JSON with full media details for rendering.
+### Favorites
+
+The Favorites row on the landing page shows the user’s saved media. It uses a two-step flow: first get the list of favorite media IDs from the auth/list provider, then get full metadata (title, image, sources, etc.) from the JW Player Watchlist API so the app can render the row. The Watchlist ID (favoritesList) comes from the app config: features.favoritesList (e.g. "6Caha2s8"). Favorites are only shown when the user is signed in. **Step 1** typically uses **InPlayer**; when configured for another auth provider or custom API, the app uses those endpoints instead (same JW Watchlist step 2).
+
+**Step 1: Get favorite media IDs (InPlayer)**
+
+**Request URL:** `GET https://services.inplayer.com/v2/accounts/media/favorites`  
+**Header:** `Authorization: Bearer <access_token>`
+
+**Response:**
+```json
+{
+  "collection": [
+    {
+      "media_id": "Tqsip2zn",
+      "created_at": 1771844042
+    },
+    {
+      "media_id": "6LAdc5cj",
+      "created_at": 1771844029
+    },
+    {
+      "media_id": "YvRgLFCV",
+      "created_at": 1771844020
+    }
+  ],
+  "cursor": null
+}
+```
+
+Each item in collection has media_id (used in step 2 to request metadata) and created_at (timestamp). cursor is used for pagination when there are more results.
+
+**Step 2:  metadata (JW Player Watchlist)**
+
+**Request URL:** `GET https://cdn.jwplayer.com/apps/watchlists/{favoritesList}?media_ids={id1},{id2},...`  
+Optional: `&token={access_token}` when the watchlist requires authentication.
+
+Replace favoritesList with the ID from config (e.g. 6Caha2s8) and media_ids with the comma-separated media_id values from step 1. The response is the same shape as a playlist response: playlist array of media items with title, mediaid, image, sources, etc., used to render the Favorites row.
+
+**Notes:** The favorites base URL can be customized (e.g. per deployment). Add or remove favorites use the InPlayer endpoints: POST to add, DELETE to remove, per media_id.
 
 ### Continue Watching
-**Execution Flow:**
-1. App reads `features.continueWatchingList` (Watchlist ID) from JW Config.
-2. User's watch history (with progress) is fetched from InPlayer.
-3. Media metadata is resolved via JW Player Watchlist API.
-4. Progress is merged client-side.
 
-**Step 1: Get History (InPlayer)**
-- **URL:** `GET https://services.inplayer.com/v2/accounts/media/watch-history?filter=currently_watching`
-- **Header:** `Authorization: Bearer <token>`
-- **Response:** `{"collection": [{ "media_id": "bPGQut6P", "progress": 0.59 }]}`
+The Continue Watching row shows media the user has started and their play progress. It uses a two-step flow: first get watch history (media IDs and progress) from the auth provider, then get full metadata from the JW Player Watchlist API. The Watchlist ID (continueWatchingList) comes from the app config: features.continueWatchingList (e.g. "WAGTlDJq"). Progress is merged client-side so each item shows the correct resume position. Continue Watching is only shown when the user is signed in. **Step 1** typically uses **InPlayer**; when configured for **Custom API**, the app uses those endpoints instead (same JW Watchlist step 2).
 
-**Step 2: Resolve Metadata (JW Player)**
-- **URL:** `GET https://cdn.jwplayer.com/apps/watchlists/{continueWatchingList}?media_ids={id1},{id2}`
+**Step 1: Get watch history (InPlayer)**
+
+**Request URL:** `GET https://services.inplayer.com/v2/accounts/media/watch-history`  
+Optional query: `?filter=currently_watching` (behavior may vary by platform).  
+**Header:** `Authorization: Bearer <access_token>`
+
+**Response:**
+```json
+{
+  "collection": [
+    {
+      "media_id": "bPGQut6P",
+      "progress": 0.59
+    },
+    {
+      "media_id": "AfBxLygN",
+      "progress": 0.22
+    }
+  ],
+  "cursor": null
+}
+```
+
+Each item has media_id (used in step 2 to request metadata) and progress (0–1, resume position). cursor is used for pagination when there are more results.
+
+**Step 2:  metadata (JW Player Watchlist)**
+
+**Request URL:** `GET https://cdn.jwplayer.com/apps/watchlists/{continueWatchingList}?media_ids={id1},{id2},...`  
+Optional: `&token={access_token};` when the watchlist requires authentication.
+
+Replace continueWatchingList with the ID from config (e.g. WAGTlDJq) and media_ids with the comma-separated media_id values from step 1. The response is the same shape as a playlist: playlist array of media items with title, mediaid, image, sources, etc. The app merges progress from step 1 with each item so the row shows thumbnails and resume positions.
+
+**Notes:** The watch-history base URL (InPlayer) can be customized (e.g. per deployment). Updating progress uses InPlayer’s watch-history update endpoint with media_id and progress (0–1); removing is implementation-specific.
 
 ---
 
 ## Details Screen
 
+When the user selects a media item (from a playlist, search, or list), the app opens the details screen. For a single video (movie or episode), the app calls the Media Details API with the media_id. For a series, it calls Series Details and Episodes (see below). The response drives the details layout: title, description, poster, and playback sources.
+
 ### Media Details
-**URL:** `https://cdn.jwplayer.com/v2/media/{media_id}`
+
+**Request URL:** `https://cdn.jwplayer.com/v2/media/{media_id}`
 **Method:** `GET`
 
-**Response:**
+**Response :**
 ```json
 {
-  "title": "Cosmos Laundromat",
-  "description": "...",
+  "title": "Cosmos Laundromat - First Cycle",
+  "description": "The film focuses around a depressed and suicidal sheep named Franck who's offered \"all the lives he ever wanted\" by a mysterious salesman named Victor. ...",
   "kind": "Single Item",
-  "playlist": [...]
+  "playlist": [
+    {
+      "title": "Cosmos Laundromat - First Cycle",
+      "mediaid": "HMXtcfG5",
+      "image": "https://cdn.jwplayer.com/v2/media/HMXtcfG5/poster.jpg?width=720",
+      "duration": 730,
+      "description": "...",
+      "sources": [
+        { "file": "https://cdn.jwplayer.com/manifests/HMXtcfG5.m3u8", "type": "application/vnd.apple.mpegurl" },
+        { "file": "https://cdn.jwplayer.com/videos/HMXtcfG5-vtFhjetX.mp4", "type": "video/mp4", "label": "720p", "..." }
+      ],
+      "tracks": [...],
+      "variations": {}
+    }
+  ],
+  "feed_instance_id": "69f9d74f-3339-432d-9f43-bf0ae0b010b7"
 }
 ```
+
+Notes: media_id is the ID of the selected item (e.g. from a playlist). The top-level title and description are used for the details page; playlist[0] holds the same item with full sources and tracks for playback. For "Single Item" the playlist has one entry; for series the app uses the Series Details API instead.
 
 ### Series Details
-**URL:** `https://cdn.jwplayer.com/apps/series/{mediaId}`
+
+When the user selects a series (contentType series), the app calls this API with the series media_id. The response lists seasons; the app uses it to build the Season tabs on the details screen. When a season is selected, the app calls the Episodes API (see below) to load that season’s episodes.
+
+**Request URL:** `https://cdn.jwplayer.com/apps/series/{mediaId}`
 **Method:** `GET`
 
 **Response:**
 ```json
 {
-  "kind": "series",
-  "title": "Demon Slayer",
+  "series_id": "Gv6BZZQs",
   "seasons": [
-    { "season_number": 1, "episode_count": 26 },
-    { "season_number": 2, "episode_count": 18 }
-  ]
+    {
+      "season_id": "ItiVeoK0",
+      "season_number": 1,
+      "season_title": "Season 1",
+      "season_description": "Tanjiro Kamado, who becomes a Demon Slayer after his family is slaughtered and his sister, Nezuko, is turned into a demon. ...",
+      "episode_count": 4,
+      "total_duration": 0
+    },
+    {
+      "season_id": "mC6VP0ES",
+      "season_number": 54,
+      "season_title": "Season 54",
+      "season_description": "test",
+      "episode_count": 4,
+      "total_duration": 7.354650052388509
+    }
+  ],
+  "total_duration": 54.68960081736247,
+  "episode_count": 8,
+  "season_count": 2
 }
 ```
-**Notes:** Used to build Season tabs.
+
+Notes: mediaId is the series ID (e.g. from a playlist item). seasons is used to build the Season tabs; each season has season_id, season_number, season_title, season_description, and episode_count. Use season_number in the Episodes API to load that season’s episodes.
 
 ### Episodes
-**URL:** `https://cdn.jwplayer.com/apps/series/{mediaId}/seasons/{seasonNumber}/episodes`
-**Params:** `page_offset=0`, `page_limit=20`
+
+When the user selects a season tab on the series details screen, the app calls this API with the series mediaId and the season’s season_number. The response lists episodes for that season; each episode has episode_number and media_item (title, mediaid, image, duration, etc.). Selecting an episode opens the Media Details or player for that mediaid.
+
+**Request URL:** `https://cdn.jwplayer.com/apps/series/{mediaId}/seasons/{seasonNumber}/episodes`
 **Method:** `GET`
 
 **Response:**
 ```json
 {
+  "page": 1,
+  "page_limit": 25,
+  "total": 4,
   "episodes": [
     {
       "episode_number": 1,
       "media_item": {
+        "title": "Demon Slayer Ep - 01",
         "mediaid": "hkJH3ic1",
-        "title": "Demon Slayer Ep - 01"
+        "description": "",
+        "duration": 1419,
+        "image": "http://cdn.jwplayer.com/v2/media/hkJH3ic1/poster.jpg?width=720",
+        "images": [...],
+        "link": "http://cdn.jwplayer.com/previews/hkJH3ic1",
+        "contentType": "episode"
       }
-    }
+    },
+    {
+      "episode_number": 2,
+      "media_item": {
+        "title": "Demon Slayer Ep - 02",
+        "mediaid": "szseDkrT",
+        "duration": 1420,
+        "image": "http://cdn.jwplayer.com/v2/media/szseDkrT/poster.jpg?width=720",
+        "contentType": "episode"
+      }
+    },
+    { "episode_number": 3, "media_item": ... },
+    { "episode_number": 4, "media_item": ... }
   ]
 }
 ```
-**Notes:** Called when a Season tab is selected.
+
+Notes: mediaId and seasonNumber come from the Series Details response (series_id and the chosen season’s season_number). Each entry in episodes has episode_number and media_item; media_item holds the episode’s metadata and mediaid for playback. media_item can be null for some episode slots.
+
+### All Episodes (no season filter)
+
+When the app shows all episodes of a series (e.g. without selecting a season), it can call the episodes endpoint without a season number. Pagination is supported via page_offset, page_limit, and optionally after_id.
+
+**Request URL:** `GET https://cdn.jwplayer.com/apps/series/{mediaId}/episodes?page_offset=0&page_limit=20`  
+Optional: `&after_id={id}` for cursor-based pagination.
+
+**Response shape:** Same as Episodes (by season): episodes array with episode_number and media_item, plus page, page_limit, total.
 
 ### Related Movies
-**URL:** `https://cdn.jwplayer.com/v2/playlists/{playlistId}?related_media_id={mediaId}`
+
+On the details screen, the app can show a “Related” row of content similar to the current item. It calls the same playlist endpoint as Playlist Content but adds the query param related_media_id set to the current media’s ID. The playlist ID (playlistId) comes from the app config, e.g. features.recommendationsPlaylist (e.g. "XiwS5yK0"). The response is the same shape as a playlist: title, playlist array of media items (title, mediaid, image, sources, contentType, etc.) and optional links.
+
+**Request URL:** `https://cdn.jwplayer.com/v2/playlists/{playlistId}?related_media_id={mediaId}`
 **Method:** `GET`
-**Notes:** Requires a configured "Related" playlist in JW Dashboard.
+
+**Response :**
+```json
+{
+  "title": "Related Movies a",
+  "description": "",
+  "kind": "FEED",
+  "feedid": "Vc4gGIx2",
+  "links": {
+    "first": "https://cdn.jwplayer.com/v2/playlists/Vc4gGIx2?page_limit=5&page_offset=1&related_media_id=YvRgLFCV&format=json&internal=false",
+    "last": "...",
+    "next": "..."
+  },
+  "playlist": [
+    {
+      "title": "The Rings of Power",
+      "mediaid": "8fZXbtr8",
+      "image": "https://cdn.jwplayer.com/v2/media/8fZXbtr8/poster.jpg?width=720",
+      "duration": 103,
+      "description": "...",
+      "sources": [...],
+      "contentType": "movie",
+      "recommendations": "https://cdn.jwplayer.com/v2/playlists/Vc4gGIx2?related_media_id=8fZXbtr8"
+    },
+    "..."
+  ],
+  "feed_instance_id": "b31175d4-4a03-455f-a909-84c3342ede99"
+}
+```
+
+Notes: playlistId is the recommendations/related playlist ID from config; mediaId is the current details item. The API returns content related to that media. Each playlist item can include a recommendations URL for deeper related content. The response shape matches the standard playlist response (playlist array, links, etc.).
 
 ---
 
 ## Search
 
-**URL:** `https://cdn.jwplayer.com/v2/playlists/{searchId}?search={searchKey}`
+When the user enters a search query, the app calls this API with the search playlist ID (searchId) from the app config and the query as searchKey. searchId comes from features.searchPlaylist (e.g. "G6CIE2Z4"). The response has the same shape as a playlist: title, kind "SEARCH", feedid, links, and a playlist array of matching items (movie, series, episode, hub, liveEvent, etc.). The app renders the search results from the playlist array.
+
+**Request URL:** `https://cdn.jwplayer.com/v2/playlists/{searchId}?search={searchKey}`
 **Method:** `GET`
 
-**Response:**
+**Response :**
 ```json
 {
-  "title": "Search Results",
+  "title": "Search Playlist",
+  "description": "",
+  "kind": "SEARCH",
+  "feedid": "KgmRCd9H",
+  "links": {
+    "first": "https://cdn.jwplayer.com/v2/playlists/KgmRCd9H?page_limit=25&page_offset=1&search=a&format=json&internal=false",
+    "last": "...",
+    "next": "..."
+  },
   "playlist": [
     {
-      "title": "Result 1",
-      "mediaid": "Vx9Qe2La",
+      "title": "This is a test media",
+      "mediaid": "toXLmeaF",
+      "image": "https://cdn.jwplayer.com/v2/media/toXLmeaF/poster.jpg?width=720",
+      "contentType": "hub"
+    },
+    {
+      "title": "A Girl's Guide to Hunting, Fishing, and Wild Cooking",
+      "mediaid": "vYTDBEaq",
+      "image": "https://cdn.jwplayer.com/v2/media/vYTDBEaq/poster.jpg?width=720",
       "contentType": "series"
-    }
-  ]
+    },
+    {
+      "title": "Tom & Jerry ...",
+      "mediaid": "sMQ5053S",
+      "image": "https://cdn.jwplayer.com/v2/media/sMQ5053S/poster.jpg?width=720",
+      "duration": 1375,
+      "contentType": "movie",
+      "sources": [...]
+    },
+    "..."
+  ],
+  "feed_instance_id": "6e8ba85e-0b0b-4e92-9af1-e288489662d6"
 }
 ```
-**Notes:** `searchId` comes from JW Config `features.search_playlist`.
+
+Notes: searchId is the search playlist ID from config (features.searchPlaylist); searchKey is the user’s search query. Results in playlist can be movie, series, episode, hub, liveEvent, trailer, etc. Each item has title, mediaid, image, and optionally sources, duration, description. The response shape matches the standard playlist response (playlist array, links).
+
+**Alternative (site-scoped search):** Some apps use the App Content Search API instead: `GET https://cdn.jwplayer.com/v2/sites/{siteId}/app_content/media/search?search_query={searchKey}` The config’s siteId is used; response shape may differ slightly.
 
 ---
 
-## Playback Access
+## Access
+
+Before playing protected content, the app checks whether the user has access (Content Access Check). If access is granted and the content is DRM-protected, the app requests a DRM token and then uses the JW Player DRM playback URL with that token. The base URL for these calls can be customized (e.g. per deployment).
+
+### How DRM works
+
+1. **Access check (InPlayer)** — When the user tries to play, the app calls the Content Access endpoint. That answers whether the user is allowed to play this product. If not, the app shows a paywall and does not continue.
+2. **DRM token (InPlayer)** — If access is granted and the content is DRM-protected, the app requests a short-lived token from the auth backend (app_config_id, media_id). That token proves to JW Player that this user may get DRM playback for this media.
+3. **JW Player DRM URL (Delivery API)** — The app calls the JW Delivery API with the token: `GET https://cdn.jwplayer.com/v2/media/{mediaId}/drm/{drmPolicyId}?token={token}`. JW returns playback JSON (metadata, manifest URLs, license acquisition URLs). The player uses this to decrypt and play. For DRM, JW requires the request to be signed (the token does this); returned media and license URLs are time-limited (e.g. valid for about 10 minutes). For playlists of DRM content, JW exposes a playlist endpoint that returns the same kind of signed, time-limited data for multiple items. See [JW Player DRM Playlist objects](https://docs.jwplayer.com/platform/reference/get_v2-playlists-playlist-id-drm-policy-id).
+
+**SSAI + DRM:** When server-side ad insertion (SSAI) is enabled with DRM, the app may use the playback endpoint instead: `GET https://cdn.jwplayer.com/v2/sites/{siteId}/media/{mediaId}/playback.json` with query params token, drm_policy_id, and ad_config_id. The response includes signed playback and ad configuration.
 
 ### Content Access Check
-**Endpoint:** `GET https://services.inplayer.com/items/{productId}/access`
 
+The app calls this when the user tries to play a media item that is tied to a product (subscription or one-off). productId is the item’s product ID (e.g. from the media’s productIds or productIdsStaging in the playlist/details response). If the response indicates access, the app can proceed to request a DRM token (for protected streams) or load the standard playback URL.
+
+**Request URL:** `GET https://services.inplayer.com/items/{productId}/access`
 **Headers:** `Authorization: Bearer <access_token>`
 
 **Response:**
@@ -224,17 +585,23 @@ When the app loads, it fetches configuration from Firebase and JW Player to dete
   "expires_at": 1760000000
 }
 ```
-**Notes:** Checked before playback to determine if a DRM token can be requested.
+
+access is true when the user is entitled to the product; expires_at is a Unix timestamp when that access ends. If access is false or the call fails, the app typically shows a paywall or upgrade message instead of playing.
 
 ### DRM Token
+
+For DRM-protected streams, the app gets a token from the auth backend before calling the JW Player DRM playback URL. media_id is the ID of the media being played; app_config_id comes from app config (e.g. drmConfigId).
+
 **Endpoint:** `POST https://services.inplayer.com/v2/items/jw-media/token`
 
 **Payload:**
 ```json
 {
+  "app_config_id":"****",
   "media_id": "hkJH3ic1"
 }
 ```
+**Headers:** `Authorization: Bearer <access_token>`
 
 **Response:**
 ```json
@@ -243,4 +610,5 @@ When the app loads, it fetches configuration from Firebase and JW Player to dete
   "expires_at": 1760000000
 }
 ```
-**Notes:** Mandatory for secure streams. Used with JW Player DRM playback URL.
+
+**Notes:** Mandatory for secure streams. The app passes the token to the JW Delivery API (e.g. .../v2/media/&#123;mediaId&#125;/drm/&#123;drmPolicyId&#125;?token=...) so the stream can be decrypted. Without a valid token, DRM playback will not start. On some platforms the request may be made via an auth SDK that calls this backend.
