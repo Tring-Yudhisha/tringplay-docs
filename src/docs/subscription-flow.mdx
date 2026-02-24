@@ -1,14 +1,31 @@
 # Subscription & Billing
 
-This section details the Subscription process for the application, covering both InPlayer and Cleeng provider integrations.
+This section details the subscription and billing process. We support **InPlayer** and **Cleeng**. Subscription APIs use the **same authentication** as the chosen auth provider:
 
+- **InPlayer subscriptions** — Use **InPlayer** sign-in  `Authorization: Bearer <access_token>`
+- **Cleeng subscriptions** — Use **Cleeng** sign-in `Authorization: Bearer <jwt>` 
 
-### Get Subscriptions (InPlayer)
-**Endpoint:** `GET https://services.inplayer.com/subscriptions`
+---
+
+## InPlayer Subscription
+
+**Base URL**
+
+- **Production:** `https://services.inplayer.com`
+- **Staging / Sandbox:** `https://staging-v2.inplayer.com`
+
+For sandbox, use the Staging base URL for all endpoints below.
+
+### Get Subscriptions
+
+**Request URL:** `https://services.inplayer.com/subscriptions`
+
+**Method:** `GET`
 
 **Headers:** `Authorization: Bearer <access_token>`
 
 **Response:**
+
 ```json
 {
   "collection": [
@@ -22,12 +39,35 @@ This section details the Subscription process for the application, covering both
 }
 ```
 
-### Get Subscriptions (Cleeng)
-**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/subscriptions`
+**Notes:** Returns the customer’s subscriptions. Use the same access token obtained from InPlayer sign-in.
 
-**Headers:** `Authorization: Bearer <jwt>`
+---
+
+## Cleeng Subscription
+
+**Base URL**
+
+- **Production:** `https://mediastore.cleeng.com`
+- **Sandbox/Staging:** `https://mediastore-sandbox.cleeng.com`
+
+**Note:** Some deployments use https://mediastoreapi.cleeng.com (and mediastoreapi-sandbox) for subscription and payment endpoints. Use the deployment’s base URL.
+
+For sandbox, use the Sandbox base URL for all endpoints below.
+
+### Get Subscriptions
+
+**Request URL:** `https://mediastore.cleeng.com/customers/{customerId}/subscriptions`
+
+**Method:** `GET`
+
+**Headers:** 
+```
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
 
 **Response:**
+
 ```json
 {
   "responseData": {
@@ -40,11 +80,17 @@ This section details the Subscription process for the application, covering both
         "expiresAt": 1771843881,
         "nextPaymentPrice": 554.47,
         "nextPaymentCurrency": "INR",
+        "nextPaymentAt": 1771843881,
         "paymentGateway": "adyen",
         "paymentMethod": "card",
-        "offerTitle": "Table Tennis TV Monthly Subscription",
+        "externalPaymentId": "VZXL9HN5L4TQMR25",
+        "inTrial": true,
+        "pendingSwitchId": null,
+        "isExternallyManaged": false,
+        "offerTitle": "Monthly Subscription",
         "period": "month",
-        "customerCurrency": "INR"
+        "customerCurrency": "INR",
+        "totalPrice": 554.47
       }
     ]
   },
@@ -52,12 +98,22 @@ This section details the Subscription process for the application, covering both
 }
 ```
 
-### Transactions (Cleeng)
-**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/transactions`
+**Notes:** Replace &#123;customerId&#125; with the Cleeng customerId from sign-in. Returns active, cancelled, and other subscription states. Use the same JWT from Cleeng sign-in.
 
-**Headers:** `Authorization: Bearer <jwt>`
+### Get Transactions
+
+**Request URL:** `https://mediastore.cleeng.com/customers/{customerId}/transactions`
+
+**Method:** `GET`
+
+**Headers:** 
+```
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
 
 **Response:**
+
 ```json
 {
   "responseData": {
@@ -65,12 +121,41 @@ This section details the Subscription process for the application, covering both
       {
         "transactionId": "T694438746",
         "transactionDate": 1769165481,
-        "offerTitle": "Table Tennis TV Monthly Subscription",
-        "transactionPriceInclTax": "0.0000",
+        "offerId": "S205171942_US",
+        "offerType": "subscription",
+        "offerTitle": "Monthly Subscription",
+        "offerPeriod": "monthly",
+        "publisherSiteName": "",
+        "transactionPriceExclTax": "0.0000",
         "transactionCurrency": "INR",
+        "contentExternalId": "",
+        "contentType": "",
+        "shortUrl": "",
+        "campaignId": null,
+        "campaignName": null,
+        "couponCode": null,
+        "discountType": "free-purchase",
+        "discountRate": "1.0000",
+        "discountValue": "5.9900",
+        "discountedOfferPrice": "0.0000",
+        "offerCurrency": "USD",
+        "offerPriceExclTax": "5.9900",
+        "applicableTax": "0.0000",
+        "transactionPriceInclTax": "0.0000",
+        "appliedExchangeRateCustomer": "1",
+        "customerId": 627588019,
+        "customerEmail": "user@example.com",
+        "customerLocale": "en_US",
+        "customerCountry": "IN",
+        "customerIpCountry": "IN",
+        "customerCurrency": "INR",
         "paymentMethod": "card",
-        "customerEmail": "test03@tringapps.com",
-        "publisherId": 845345696
+        "referalUrl": "",
+        "transactionExternalData": "VZXL9HN5L4TQMR25",
+        "publisherId": 845345696,
+        "taxRate": "0.0000",
+        "targetType": "subscriptionId",
+        "targetId": 114413503
       }
     ]
   },
@@ -78,27 +163,42 @@ This section details the Subscription process for the application, covering both
 }
 ```
 
-### Payment Details (Cleeng)
-**Endpoint:** `GET https://mediastore.cleeng.com/customers/{customerId}/payment_details`
+**Notes:** Replace &#123;customerId&#125; with the Cleeng customerId. Optional query params (e.g. limit, offset) may be supported for pagination. Use the same JWT from Cleeng sign-in.
 
-**Headers:** `Authorization: Bearer <jwt>`
+### Get Payment Details
+
+**Request URL:** `https://mediastore.cleeng.com/customers/{customerId}/payment_details`
+
+**Method:** `GET`
+
+**Headers:** 
+```
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
 
 **Response:**
+
 ```json
 {
   "responseData": {
     "paymentDetails": [
       {
         "id": 155704035,
+        "customerId": 627588019,
         "paymentGateway": "adyen",
         "paymentMethod": "card",
         "paymentMethodSpecificParams": {
           "variant": "visa",
           "lastCardFourDigits": "****",
-          "holderName": "test test",
-          "cardExpirationDate": "0*/20**"
+          "holderName": "Cardholder Name",
+          "cardExpirationDate": "0*/20**",
+          "merchantAccount": "CleengEUR",
+          "socialSecurityNumber": ""
         },
+        "paymentMethodId": 221670773,
         "active": true,
+        "bound": false,
         "subscriptionIds": [114413503]
       }
     ]
@@ -106,3 +206,5 @@ This section details the Subscription process for the application, covering both
   "errors": []
 }
 ```
+
+**Notes:** Replace &#123;customerId&#125; with the Cleeng customerId. Returns saved payment methods (e.g. card). Use the same JWT from Cleeng sign-in.
