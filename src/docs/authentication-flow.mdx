@@ -1,15 +1,27 @@
 # Authentication Flow
 
-This section details the authentication process for the application, covering both InPlayer and Cleeng provider integrations.
+This section details the authentication process. We support **InPlayer**, **Cleeng**, **Cognito**, and **custom** (deployment-specific custom API). No client or product names are used in this document.
 
 ## InPlayer Authentication
 
+**Base URL**
+
+- **Production:** `https://services.inplayer.com`
+- **Staging / Sandbox:** `https://staging-v2.inplayer.com`
+
+For sandbox, use the Staging base URL for all endpoints below. Replace the host in the request URLs accordingly.
+
+
 ### Sign In
-**Endpoint:** `POST https://services.inplayer.com/accounts/authenticate`
 
-**Description:** Entry point for all user-based features. Returns `access_token` required for Favorites, Watch History, Subscriptions, and DRM.
+**Request URL:** `https://services.inplayer.com/accounts/authenticate`
 
-**Payload:**
+**Method:** `POST`
+
+**Headers:** `Content-Type: application/x-www-form-urlencoded` (payload is typically sent as form-encoded; the fields below are the logical shape).
+
+**Payload (form fields or JSON):**
+
 ```json
 {
   "username": "user@email.com",
@@ -20,6 +32,7 @@ This section details the authentication process for the application, covering bo
 ```
 
 **Response:**
+
 ```json
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -27,15 +40,27 @@ This section details the authentication process for the application, covering bo
   "expires_in": 3600,
   "account": {
     "id": 123456,
-    "email": "user@email.com"
+    "uuid": "...",
+    "email": "user@email.com",
+    "full_name": "John Doe",
+    "metadata": { "first_name": "John", "surname": "Doe", "consents": "..." },
+    "created_at": 1770373162
   }
 }
 ```
 
-### Sign Up
-**Endpoint:** `POST https://services.inplayer.com/accounts`
+**Notes:** Use the refresh token to obtain a new access token when expired (see provider docs). The account object contains user profile (id, email, full_name, metadata, created_at).
 
-**Payload:**
+### Sign Up
+
+**Request URL:** `https://services.inplayer.com/accounts`
+
+**Method:** `POST`
+
+**Headers:** `Content-Type: application/x-www-form-urlencoded` (payload is typically sent as form-encoded).
+
+**Payload (form fields or JSON):**
+
 ```json
 {
   "full_name": "John Doe",
@@ -48,35 +73,47 @@ This section details the authentication process for the application, covering bo
 }
 ```
 
+**Notes:** Payload may include **metadata** (e.g. first_name, surname, terms and conditions, consents). Some API versions accept email in place of username; referrer is optional.
+
 **Response:**
+
 ```json
 {
   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIs...",
   "expires": 1752480000,
   "timestamp": 1770373162,
-  "refresh_token": "def50200d8d7..."
+  "refresh_token": "def50200d8d7...",
+  "account": { "id": 123456, "email": "...", "full_name": "...", "metadata": {...}, "created_at": ... }
 }
 ```
 
 ### Sign Out
-**Endpoint:** `POST https://services.inplayer.com/accounts/logout`
+
+**Request URL:** `https://services.inplayer.com/accounts/logout`
+
+**Method:** `POST`
 
 **Headers:** `Authorization: Bearer <access_token>`
 
-**Response:**
-```json
-{
-  "success": true
-}
-```
-**Notes:** Clears server-side session. Client must also clear listed tokens and user state. Redirect to Home/Login.
+**Response:** Success is typically indicated by a 200 status e.g: `{ "success": true }`
+
+**Notes:** Clears server-side session. Client must also clear stored tokens and user state, then redirect to Home/Login.
 
 ### Delete Account
-**Endpoint:** `POST https://staging-v2.inplayer.com/accounts/erase`
 
-**Headers:** `Authorization: Bearer <access_token>`, `Content-Type: application/json`
+**Request URL:** `https://services.inplayer.com/accounts/erase`
 
-**Payload:**
+**Method:** `POST`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Payload:** Password is required for verification.
+
 ```json
 {
   "password": "*******"
@@ -84,31 +121,46 @@ This section details the authentication process for the application, covering bo
 ```
 
 **Response:**
+
 ```json
 {
   "code": 200,
   "message": "Account data was successfully erased."
 }
 ```
-
 ---
 
 ## Cleeng Authentication
 
+**Base URL**
+- **Production:** `https://mediastore.cleeng.com`
+- **Sandbox/Staging:** `https://mediastore-sandbox.cleeng.com`
+
+For sandbox, use the Sandbox base URL for all endpoints below.
+
 ### Sign In
-**Endpoint:** `POST https://mediastore.cleeng.com/auths`
+
+**Request URL:** `https://mediastore.cleeng.com/auths`
+
+**Method:** `POST`
+
+**Headers:** `Content-Type: application/json`
 
 **Payload:**
+
 ```json
 {
-  "email": "test@tringapps.com",
+  "email": "user@example.com",
   "password": "********",
-  "publisherId": "845345696" 
+  "publisherId": "845345696",
+  "customerIP": "203.0.113.42"
 }
 ```
-*(publisherId depends on environment)*
+
+**Notes:** Payload includes customerIP (client IP), email, password, and publisherId.
 
 **Response:**
+
 ```json
 {
   "responseData": {
@@ -120,4 +172,184 @@ This section details the authentication process for the application, covering bo
   "errors": []
 }
 ```
-**Notes:** `jwt` is used for all Cleeng API calls. `customerId` is needed for subscriptions and payments.
+
+**Notes:** jwt is the access token for all Cleeng API calls. customerId (from JWT or response) is needed for subscriptions and payments. Use the refresh token to obtain a new JWT when it is about to expire.
+
+### Sign Up
+
+**Request URL:** `https://mediastore.cleeng.com/customers`
+
+**Method:** `POST`
+
+**Headers:** `Content-Type: application/json`
+
+**Payload:**
+
+```json
+{
+  "email": "user@example.com",
+  "password": "********",
+  "firstName": "John",
+  "lastName": "Doe",
+  "locale": "en",
+  "country": "US",
+  "currency": "USD",
+  "publisherId": "845345696",
+  "customerIP": "203.0.113.42"
+}
+```
+
+**Notes:** Locale, country, and currency can be obtained from Cleeng (e.g. getLocales) before registration. Consents can be updated in a separate call after registration.
+
+---
+
+## Cognito Authentication
+
+We use AWS Cognito for sign-in, sign-up, and sign-out. Auth and token endpoints are deployment-specific (e.g. Hosted UI domain or cognito-idp.&lt;region&gt;.amazonaws.com). After authentication, profile and other operations use the Custom API (see Custom API section below).
+
+**Base URL**
+
+- **Auth / Login:** Deployment-specific (e.g. https://auth.&lt;deployment&gt;.com or Cognito Hosted UI).
+- **Token:** Deployment-specific (e.g. same auth base or Cognito token endpoint).
+
+Use the deployment’s base URL for all endpoints below. Staging may use a different base.
+
+### Sign In
+
+**Request URL:** `https://auth.<deployment>.com/login` or `/oauth2/authorize`
+
+**Method:** `GET` (redirect to login page)
+
+**Headers:** None for initial redirect; browser follows redirect to login UI.
+
+**Payload (query params):**
+
+```
+redirect_uri
+response_type=code
+client_id
+identity_provider=COGNITO
+scope=openid email profile
+state
+code_challenge
+code_challenge_method
+```
+
+**Response:** Redirect to login page; after user signs in, redirect back to app with code. Exchange code for tokens via token endpoint (POST) with grant_type=authorization_code, code, client_id, redirect_uri, code_verifier.
+
+**Notes:** Token response includes idToken, accessToken, refreshToken (JWT). Use the refresh token to obtain new tokens when expired. Social login (e.g. Google, Apple, Facebook) may be available on the login page.
+
+### Sign Up
+
+**Request URL:** Deployment-specific (e.g. Cognito SignUp API or Hosted UI sign-up).
+
+**Method:** `POST` (if using API) or via Hosted UI.
+
+**Headers:** `Content-Type: application/json` (if API).
+
+**Payload (concept):**
+
+```json
+{
+  "username": "user@email.com",
+  "password": "********",
+  "email": "user@email.com",
+  "attributes": [
+    { "Name": "name", "Value": "John Doe" }
+  ]
+}
+```
+
+**Response (concept):** User created; confirmation required (e.g. code sent to email). After confirmation, user can sign in.
+
+**Notes:** Registration flow and required fields depend on Cognito User Pool configuration.
+
+### Sign Out
+
+**Request URL:** `https://auth.<deployment>.com/logout?client_id=<client_id>&logout_uri=<redirect_uri>`
+
+**Method:** `GET`
+
+**Headers:** None (cookies may be sent). Client clears stored tokens and user state after redirect.
+
+**Response:** Redirect (e.g. 302) to logout_uri. Client must clear stored tokens (idToken, accessToken, refreshToken) and user state.
+
+**Notes:** Logout is deployment-specific; exact query params (client_id, logout_uri) depend on configuration.
+
+---
+
+## Custom API
+
+Used after Cognito (or other) sign-in for user profile, favorites, watch history, change password, delete account, and activate TV. Base URL and paths are deployment-specific. All requests use `Authorization: Bearer <access_token>` (Cognito or provider token).
+
+**Base URL**
+
+- **API:** Deployment-specific (e.g. https://api.&lt;deployment&gt;.com).
+
+Use the deployment’s base URL for all endpoints below.
+
+### Get User Profile
+
+**Request URL:** `https://api.<deployment>.com/profile` (or deployment path)
+
+**Method:** `GET`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Response (concept):**
+
+```json
+{
+  "profile": {
+    "firstname": "John",
+    "lastname": "Doe",
+    "uid": "...",
+    "type": "profile"
+  }
+}
+```
+
+**Notes:** Returns current user profile. Called after sign-in to load user data.
+
+### Create / Update Profile
+
+**Request URL:** `https://api.<deployment>.com/profile` (or deployment path)
+
+**Method:** `POST`
+
+**Headers:** 
+
+``` 
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Payload (concept):** Profile fields (e.g. firstname, lastname). Shape is deployment-specific.
+
+**Response:** Deployment-specific (e.g. updated profile or success).
+
+**Notes:** Create or update user profile.
+
+### Delete Account
+
+**Request URL:** `https://api.<deployment>.com/v2/dsar` (or deployment path, e.g. /user/account)
+
+**Method:** `DELETE`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Payload:** May require password or confirmation in body; deployment-specific.
+
+**Response:** Success is typically indicated by 200 (e.g. 204 No Content).
+
+**Notes:** Permanently removes the user account and data. Exact path and payload are deployment-specific.
