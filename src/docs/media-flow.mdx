@@ -118,23 +118,20 @@ Firebase Remote Config is used to supply the JW config_id and other flags.
 
 ---
 
-## Home Screen
+## Menu
 
+The **menu** is the main navigation (e.g. sidebar or top bar). The JW Config response includes a **menu** array; the app uses it for navigation items **other than** Home. The app **internally adds** a **Home** menu item (and optionally **Search**) so that the full menu is: [Search (if enabled), **Home**, …menu items from JW Config]. When the user selects **Home**, the app shows the **Home screen** (the landing page driven by the **content** array). Other menu items (e.g. Leagues, Live, Hub) come from the **menu** array and load their own content. So: **Menu** = list of nav entries (Home is app-added; the rest come from JW **menu**); **Home screen** = the view when the user selects Home = **content** (landing page).
 
-### Menu
+Each **menu** array item from JW Config has:
+- **contentId:** ID used to load the content (playlist, media, watchlist).
+- **label:** Text shown in the navigation (e.g. "Leagues", "Live").
+- **type:** Usually playlist or media; tells the app how to load the item.
+- **filterTags** (optional): Used to filter content.
+- **custom** (optional): Extra config for the item.
 
-The menu comes from the menu array in the JW Config response. The app uses it to build the main navigation (e.g. sidebar or top bar). The order of items in the array is the order shown in the UI.
+The app builds the displayed menu by prepending **Home** (contentId: "home", label: "Home", type: "home") and optionally **Search**, then appending the **menu** array from JW Config. When the user selects **Home**, the app shows the Home screen (landing page from **content**). When the user selects another item, the app loads that item’s playlist or content.
 
-Each menu item has:
-- contentId: ID used to load the content (playlist, media, or watchlist).
-- label: Text shown in the navigation.
-- type: Usually playlist or media; tells the app how to load the item (playlist by ID, single media, etc.).
-- filterTags (optional): Used to filter content.
-- custom (optional): Extra config for the item.
-
-When the user selects a menu item, the app uses contentId and type to fetch and show the right content.
-
-Example (from JW Config response):
+Example **menu** array as returned by JW Config (this does not include Home; the app adds Home internally):
 
 ```json
 "menu": [
@@ -155,7 +152,14 @@ Example (from JW Config response):
 ]
 ```
 
-Here, "Leagues" and "Live" are two nav items; both are playlists. Selecting "Leagues" loads the playlist with ID 2gNQCcXt; selecting "Live" loads the playlist cKLiHMnf (with filterTags "live-event" applied if the app uses it).
+The app displays: **Home** (app-added) first, then **Leagues**, then **Live**. Selecting **Home** shows the Home screen (landing page). Selecting **Leagues** or **Live** loads the corresponding playlist.
+
+---
+
+## Home Screen
+
+The **Home screen** is the landing view that appears when the user selects the **Home** menu item (see Menu above). It is driven by the **content** array in the JW Config response: each item in **content** defines a row or section on the landing page (featured section, playlists, Favorites, Continue Watching, etc.). So the flow is: **Menu** → user selects **Home** → app shows **Home screen** → Home screen renders the **content** (featured + rows).
+
 ### Featured Section
 
 On the landing page, the rows (carousels and shelves) come from the app config response under the key content. Each item in content has contentId, title, type (e.g. playlist, favorites, continue_watching), featured, filterTags, and optional custom and enableText.
@@ -374,7 +378,49 @@ When the user selects a media item (from a playlist, search, or list), the app o
 }
 ```
 
-Notes: media_id is the ID of the selected item (e.g. from a playlist). The top-level title and description are used for the details page; playlist[0] holds the same item with full sources and tracks for playback. For "Single Item" the playlist has one entry; for series the app uses the Series Details API instead.
+Notes: media_id is the ID of the selected item (e.g. from a playlist). The top-level title and description are used for the details page; playlist[0] holds the same item with full sources and tracks for playback. For "Single Item" the playlist has one entry; for series the app uses the Series Details API instead; for hub the response has contentType "hub" and a playlist field (see Hub below).
+
+### Hub
+
+**Hub** is one of the **content types** of media (like movie, series). The flow is: **Details screen** → app calls the **Media Details** API for the selected media_id → response has `contentType: "hub"` and a **playlist** field (comma-separated playlist IDs) → app then calls the **playlist API** for each ID and renders each result as a row/section on the hub page.
+
+**Step 1 — Media Details (same as Media Details above):**
+
+**Request:** `GET https://cdn.jwplayer.com/v2/media/{media_id}`  
+
+
+**Response:** The response has kind: "Single Item" and a playlist array. The first item (playlist[0]) contains contentType: "hub" and playlist: "Mye5LqB6,siqAG29Y" (comma-separated playlist IDs). The app uses this to determine it is a hub and which playlists to load.
+
+**Example response (abbreviated):**
+```json
+{
+  "title": "Hub Test 3",
+  "description": "This is a test description to display the description for Hub...",
+  "kind": "Single Item",
+  "playlist": [
+    {
+      "title": "Hub Test 3",
+      "mediaid": "JYembQOG",
+      "image": "https://cdn.jwplayer.com/v2/media/JYembQOG/poster.jpg?width=720",
+      "contentType": "hub",
+      "playlist": "Mye5LqB6,siqAG29Y",
+      "description": "...",
+      "sources": [{ "file": "None", "type": "application/octet-stream" }],
+      "variations": {}
+    }
+  ],
+  "feed_instance_id": "f8929107-fb7e-497f-87e1-a2177831588d"
+}
+```
+
+**Step 2 — Call playlist API for each ID:**
+
+Based on `playlist: "Mye5LqB6,siqAG29Y"` the app calls the playlist endpoint for each ID:
+
+- `GET https://cdn.jwplayer.com/v2/playlists/Mye5LqB6` 
+- `GET https://cdn.jwplayer.com/v2/playlists/siqAG29Y` (e.g. with ?page_offset=1&page_limit=5 for pagination)
+
+Each response returns a playlist (title, playlist array of media items). The app renders each as a section/row on the hub details page (e.g. "Movies", "Series Content").
 
 ### Series Details
 
