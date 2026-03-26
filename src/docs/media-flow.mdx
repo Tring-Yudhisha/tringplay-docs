@@ -7,15 +7,18 @@ This section details the media handling process, including App Initialization, H
 When the app loads, it fetches configuration from Firebase and JW Player to determine feature flags, custom parameters, and content structure.
 
 ### Firebase Remote Config
-**Request URL:** `https://firebaseremoteconfig.googleapis.com/v1/projects/${projectId}/namespaces/firebase:fetch?key=${apiKey}`
+**Request URL:** `
+https://firebaseremoteconfig.googleapis.com/v1/projects/{projectId}/namespaces/firebase:fetch?key={key}&app_id={app_id}&app_instance_id={app_instance_id}&app_instance_id_token={app_instance_id_token}&language_code={language_code}&sdk_version={sdk_version}`
 **Method:** `POST`
 
 **Payload:**
 ```json
 {
-  "app_id": "config.appId",
-  "app_instance_id": "config.app_instance_id",
-  "app_instance_id_token": "token",
+  "projectId":"tringplay-65e37key",
+  "key":"AIzaSyD6kyumapPOG4OMUS9Uh7wyvWPWfPqjajM",
+  "app_id": "1:1043373373981:web:8bb363c7cb68c74ec064f4",
+  "app_instance_id": "c7kEqXIZFRvwknSyBcQChi",
+  "app_instance_id_token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhcHBJZCI6IjE6MTA0MzM3MzM3Mzk4MTp3ZWI6OGJiMzYzYzdjYjY4Yzc0ZWMwNjRmNCIsImV4cCI6MTc0MzU3Nzk3NiwiZmlkIjoiYzdrRXFYSVpGUnZ3a25TeUJjUUNoaSIsInByb2plY3ROdW1iZXIiOjEwNDMzNzMzNzM5ODF9.AB2LPV8wRQIgV0RXez0TmqFz4BREKd8HEPA2EbSFiRw9jjWWpAXLu3ECIQCHZQXbUBjKj31J8qx19uu6bNTvZJEDhggnXGshYETVag",
   "language_code": "en-GB",
   "sdk_version": "11.4.0"
 }
@@ -62,6 +65,11 @@ Firebase Remote Config is used to supply the JW config_id and other flags.
 ### JW Config Call
 **Request URL:** `https://cdn.jwplayer.com/apps/configs/{config_id}.json`
 **Method:** `GET`
+
+**Payload:**
+```json
+"config_id" : "ffuxvbfv"
+```
 
 **Response:**
 ```json
@@ -218,6 +226,10 @@ For each content or menu item with type playlist, the app loads the playlist by 
 
 **Request URL:** `https://cdn.jwplayer.com/v2/playlists/{playlist_id}`
 **Method:** `GET`
+**Payload:**
+```json
+"playlist_id" : "xaCDDmsj"
+```
 
 **Response:**
 ```json
@@ -269,8 +281,9 @@ The Favorites row on the landing page shows the user’s saved media. It uses a 
 
 **Step 1: Get favorite media IDs (InPlayer)**
 
-**Request URL:** `GET https://services.inplayer.com/v2/accounts/media/favorites`  
-**Header:** `Authorization: Bearer <access_token>`
+**Request URL:** `https://staging-v2.inplayer.com/v2/accounts/media/favorites`  
+**Method:** `GET`
+**Header:** `Authorization: Bearer "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiJ9.eyJhdWQiOiIyOGEwOGI5OS1iOWY1LTRmNGYtYmE3ZC1iNmI1MmU2ZGI5ZjgiLCJqdGkiOiJkM2M1MTRiMi0zMTc5LTRlODctYmNkOS04OWY4OTg0N2IwNDYiLCJpYXQiOjE3NzQ1MTE2NDcsIm5iZiI6MTc3NDUxMTY0NywiZXhwIjoxNzc3MTA3MjQ3LCJzdWIiOiJqcEBnbWFpbC5jb20iLCJzY29wZXMiOltdLCJtaWQiOjc2NjAwLCJhaWQiOjI0NzUxNSwibXVpIjoiMjhhMDhiOTktYjlmNS00ZjRmLWJhN2QtYjZiNTJlNmRiOWY4IiwiY3R4IjpbImNvbnN1bWVyIl0sInRpZCI6MjQ3NTE1LCJ0dXVpZCI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiIsIm9pZCI6MH0.fcFQSinDbbyZ5m2wmRyTtHNwD4kBFMy53hKt-pTozwM"`
 
 **Response:**
 ```json
@@ -295,14 +308,48 @@ The Favorites row on the landing page shows the user’s saved media. It uses a 
 
 Each item in collection has media_id (used in step 2 to request metadata) and created_at (timestamp). cursor is used for pagination when there are more results.
 
-**Step 2:  metadata (JW Player Watchlist)**
-
-**Request URL:** `GET https://cdn.jwplayer.com/apps/watchlists/{favoritesList}?media_ids={id1},{id2},...`  
-Optional: `&token={access_token}` when the watchlist requires authentication.
-
-Replace favoritesList with the ID from config (e.g. 6Caha2s8) and media_ids with the comma-separated media_id values from step 1. The response is the same shape as a playlist response: playlist array of media items with title, mediaid, image, sources, etc., used to render the Favorites row.
-
 **Notes:** The favorites base URL can be customized (e.g. per deployment). Add or remove favorites use the InPlayer endpoints: POST to add, DELETE to remove, per media_id.
+
+**Add favorite (single media)**
+
+**Request URL:** `https://staging-v2.inplayer.com/v2/accounts/media/favorites`  
+**Method:** `POST`  
+**Headers:**
+```
+Authorization: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiJ9.eyJhdWQiOiIyOGEwOGI5OS1iOWY1LTRmNGYtYmE3ZC1iNmI1MmU2ZGI5ZjgiLCJqdGkiOiJkM2M1MTRiMi0zMTc5LTRlODctYmNkOS04OWY4OTg0N2IwNDYiLCJpYXQiOjE3NzQ1MTE2NDcsIm5iZiI6MTc3NDUxMTY0NywiZXhwIjoxNzc3MTA3MjQ3LCJzdWIiOiJqcEBnbWFpbC5jb20iLCJzY29wZXMiOltdLCJtaWQiOjc2NjAwLCJhaWQiOjI0NzUxNSwibXVpIjoiMjhhMDhiOTktYjlmNS00ZjRmLWJhN2QtYjZiNTJlNmRiOWY4IiwiY3R4IjpbImNvbnN1bWVyIl0sInRpZCI6MjQ3NTE1LCJ0dXVpZCI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiIsIm9pZCI6MH0.fcFQSinDbbyZ5m2wmRyTtHNwD4kBFMy53hKt-pTozwM"
+Accept: "application/json"
+```
+
+**Payload**
+```
+media_id="YvRgLFCV"
+```
+
+**Response:**
+```
+{
+    "media_id": "YvRgLFCV",
+    "created_at": 1774515543
+}
+```
+
+**Remove favorite (single media)**
+
+**Request URL:** `https://staging-v2.inplayer.com/v2/accounts/media/favorites/YvRgLFCV`  
+**Method:** `DELETE`  
+**Headers:**
+```
+Authorization: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiJ9.eyJhdWQiOiIyOGEwOGI5OS1iOWY1LTRmNGYtYmE3ZC1iNmI1MmU2ZGI5ZjgiLCJqdGkiOiJkM2M1MTRiMi0zMTc5LTRlODctYmNkOS04OWY4OTg0N2IwNDYiLCJpYXQiOjE3NzQ1MTE2NDcsIm5iZiI6MTc3NDUxMTY0NywiZXhwIjoxNzc3MTA3MjQ3LCJzdWIiOiJqcEBnbWFpbC5jb20iLCJzY29wZXMiOltdLCJtaWQiOjc2NjAwLCJhaWQiOjI0NzUxNSwibXVpIjoiMjhhMDhiOTktYjlmNS00ZjRmLWJhN2QtYjZiNTJlNmRiOWY4IiwiY3R4IjpbImNvbnN1bWVyIl0sInRpZCI6MjQ3NTE1LCJ0dXVpZCI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiIsIm9pZCI6MH0.fcFQSinDbbyZ5m2wmRyTtHNwD4kBFMy53hKt-pTozwM"
+Accept: "application/json"
+```
+
+**Response:**
+```json
+{
+  "code": 200,
+  "message": "Media item has been successfully removed from favorites."
+}
+```
 
 ### Continue Watching
 
@@ -310,37 +357,73 @@ The Continue Watching row shows media the user has started and their play progre
 
 **Step 1: Get watch history (InPlayer)**
 
-**Request URL:** `GET https://services.inplayer.com/v2/accounts/media/watch-history`  
-Optional query: `?filter=currently_watching` (behavior may vary by platform).  
-**Header:** `Authorization: Bearer <access_token>`
+**Request URL:** `https://services.inplayer.com/v2/accounts/media/watch-history?filter={filter_type}`  
+**Method:** `GET` 
+**Payload**
+```
+filter_type = currently_watching
+```
+**Header:** `Authorization: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiJ9.eyJhdWQiOiIyOGEwOGI5OS1iOWY1LTRmNGYtYmE3ZC1iNmI1MmU2ZGI5ZjgiLCJqdGkiOiJkM2M1MTRiMi0zMTc5LTRlODctYmNkOS04OWY4OTg0N2IwNDYiLCJpYXQiOjE3NzQ1MTE2NDcsIm5iZiI6MTc3NDUxMTY0NywiZXhwIjoxNzc3MTA3MjQ3LCJzdWIiOiJqcEBnbWFpbC5jb20iLCJzY29wZXMiOltdLCJtaWQiOjc2NjAwLCJhaWQiOjI0NzUxNSwibXVpIjoiMjhhMDhiOTktYjlmNS00ZjRmLWJhN2QtYjZiNTJlNmRiOWY4IiwiY3R4IjpbImNvbnN1bWVyIl0sInRpZCI6MjQ3NTE1LCJ0dXVpZCI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiIsIm9pZCI6MH0.fcFQSinDbbyZ5m2wmRyTtHNwD4kBFMy53hKt-pTozwM"`
+
 
 **Response:**
 ```json
 {
-  "collection": [
-    {
-      "media_id": "bPGQut6P",
-      "progress": 0.59
-    },
-    {
-      "media_id": "AfBxLygN",
-      "progress": 0.22
-    }
-  ],
-  "cursor": null
+    "collection": [
+        {
+            "media_id": "wFm9sjGA",
+            "progress": 0.9165653783783785,
+            "created_at": 1773809542,
+            "updated_at": 1773919909
+        },
+        {
+            "media_id": "YZ6Z2z9a",
+            "progress": 0.993635947368421,
+            "created_at": 1773916196,
+            "updated_at": 1773917538
+        },
+        {
+            "media_id": "bvqaIu8q",
+            "progress": 0.9769704067796611,
+            "created_at": 1773915676,
+            "updated_at": 1773916142
+        },
+        {
+            "media_id": "hkJH3ic1",
+            "progress": 0.14765,
+            "created_at": 1773147459,
+            "updated_at": 1773909492
+        }
+    ],
+    "cursor": null
 }
 ```
 
-Each item has media_id (used in step 2 to request metadata) and progress (0–1, resume position). cursor is used for pagination when there are more results.
+**Update watch progress (single media)**
 
-**Step 2:  metadata (JW Player Watchlist)**
+**Request URL:** `PATCH https://staging-v2.inplayer.com/v2/accounts/media/watch-history?media_id={media_id}&progress={progress}`  
+**Method:** `PATCH`  
+**Headers:**
+```
+Authorization: "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiIsImp0aSI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiJ9.eyJhdWQiOiIyOGEwOGI5OS1iOWY1LTRmNGYtYmE3ZC1iNmI1MmU2ZGI5ZjgiLCJqdGkiOiJkM2M1MTRiMi0zMTc5LTRlODctYmNkOS04OWY4OTg0N2IwNDYiLCJpYXQiOjE3NzQ1MTE2NDcsIm5iZiI6MTc3NDUxMTY0NywiZXhwIjoxNzc3MTA3MjQ3LCJzdWIiOiJqcEBnbWFpbC5jb20iLCJzY29wZXMiOltdLCJtaWQiOjc2NjAwLCJhaWQiOjI0NzUxNSwibXVpIjoiMjhhMDhiOTktYjlmNS00ZjRmLWJhN2QtYjZiNTJlNmRiOWY4IiwiY3R4IjpbImNvbnN1bWVyIl0sInRpZCI6MjQ3NTE1LCJ0dXVpZCI6ImQzYzUxNGIyLTMxNzktNGU4Ny1iY2Q5LTg5Zjg5ODQ3YjA0NiIsIm9pZCI6MH0.fcFQSinDbbyZ5m2wmRyTtHNwD4kBFMy53hKt-pTozwM"
+Accept: "application/json"
+```
 
-**Request URL:** `GET https://cdn.jwplayer.com/apps/watchlists/{continueWatchingList}?media_ids={id1},{id2},...`  
-Optional: `&token={access_token};` when the watchlist requires authentication.
+**Payload (as sent in query params):**
+```
+media_id="sdftjtQ9"
+progress=0.007386594064386318
+```
 
-Replace continueWatchingList with the ID from config (e.g. WAGTlDJq) and media_ids with the comma-separated media_id values from step 1. The response is the same shape as a playlist: playlist array of media items with title, mediaid, image, sources, etc. The app merges progress from step 1 with each item so the row shows thumbnails and resume positions.
-
-**Notes:** The watch-history base URL (InPlayer) can be customized (e.g. per deployment). Updating progress uses InPlayer’s watch-history update endpoint with media_id and progress (0–1); removing is implementation-specific.
+**Response:**
+```json
+{
+  "media_id": "sdftjtQ9",
+  "progress": 0.007386594064386318,
+  "created_at": 1773914496,
+  "updated_at": 1774517211
+}
+```
 
 ---
 
@@ -352,6 +435,10 @@ When the user selects a media item (from a playlist, search, or list), the app o
 
 **Request URL:** `https://cdn.jwplayer.com/v2/media/{media_id}`
 **Method:** `GET`
+**Payload**
+```
+media_id = "sdftjtQ9"
+```
 
 **Response :**
 ```json
@@ -386,8 +473,12 @@ Notes: media_id is the ID of the selected item (e.g. from a playlist). The top-l
 
 **Step 1 — Media Details (same as Media Details above):**
 
-**Request:** `GET https://cdn.jwplayer.com/v2/media/{media_id}`  
-
+**Request:** `https://cdn.jwplayer.com/v2/media/{media_id}`  
+**Method:** `GET`
+**Payload**
+```
+media_id = "JYembQOG"
+```
 
 **Response:** The response has kind: "Single Item" and a playlist array. The first item (playlist[0]) contains contentType: "hub" and playlist: "Mye5LqB6,siqAG29Y" (comma-separated playlist IDs). The app uses this to determine it is a hub and which playlists to load.
 
@@ -428,32 +519,36 @@ When the user selects a series (contentType series), the app calls this API with
 
 **Request URL:** `https://cdn.jwplayer.com/apps/series/{mediaId}`
 **Method:** `GET`
+**Payload**
+```
+media_id = "Gv6BZZQs"
+```
 
 **Response:**
 ```json
 {
-  "series_id": "Gv6BZZQs",
-  "seasons": [
-    {
-      "season_id": "ItiVeoK0",
-      "season_number": 1,
-      "season_title": "Season 1",
-      "season_description": "Tanjiro Kamado, who becomes a Demon Slayer after his family is slaughtered and his sister, Nezuko, is turned into a demon. ...",
-      "episode_count": 4,
-      "total_duration": 0
-    },
-    {
-      "season_id": "mC6VP0ES",
-      "season_number": 54,
-      "season_title": "Season 54",
-      "season_description": "test",
-      "episode_count": 4,
-      "total_duration": 7.354650052388509
-    }
-  ],
-  "total_duration": 54.68960081736247,
-  "episode_count": 8,
-  "season_count": 2
+    "series_id": "Gv6BZZQs",
+    "seasons": [
+        {
+            "season_id": "ItiVeoK0",
+            "season_number": 1,
+            "season_title": "Season 1",
+            "season_description": "Tanjiro Kamado, who becomes a Demon Slayer after his family is slaughtered and his sister, Nezuko, is turned into a demon. He embarks on a journey to avenge his family and find a cure for Nezuko. The season showcases Tanjiro's training, his battles against demons, and his encounters with other demon slayers, including Zenitsu and Inosuke, who become his allies",
+            "episode_count": 4,
+            "total_duration": 0
+        },
+        {
+            "season_id": "mC6VP0ES",
+            "season_number": 54,
+            "season_title": "Season 54",
+            "season_description": "test",
+            "episode_count": 4,
+            "total_duration": 7.354650052388509
+        }
+    ],
+    "total_duration": 54.68960081736247,
+    "episode_count": 8,
+    "season_count": 2
 }
 ```
 
@@ -465,6 +560,11 @@ When the user selects a season tab on the series details screen, the app calls t
 
 **Request URL:** `https://cdn.jwplayer.com/apps/series/{mediaId}/seasons/{seasonNumber}/episodes`
 **Method:** `GET`
+**Payload**
+```
+media_id = "Gv6BZZQs"
+seasonNumber = 1
+```
 
 **Response:**
 ```json
@@ -509,7 +609,6 @@ Notes: mediaId and seasonNumber come from the Series Details response (series_id
 When the app shows all episodes of a series (e.g. without selecting a season), it can call the episodes endpoint without a season number. Pagination is supported via page_offset, page_limit, and optionally after_id.
 
 **Request URL:** `GET https://cdn.jwplayer.com/apps/series/{mediaId}/episodes?page_offset=0&page_limit=20`  
-Optional: `&after_id={id}` for cursor-based pagination.
 
 **Response shape:** Same as Episodes (by season): episodes array with episode_number and media_item, plus page, page_limit, total.
 
@@ -517,8 +616,13 @@ Optional: `&after_id={id}` for cursor-based pagination.
 
 On the details screen, the app can show a “Related” row of content similar to the current item. It calls the same playlist endpoint as Playlist Content but adds the query param related_media_id set to the current media’s ID. The playlist ID (playlistId) comes from the app config, e.g. features.recommendationsPlaylist (e.g. "XiwS5yK0"). The response is the same shape as a playlist: title, playlist array of media items (title, mediaid, image, sources, contentType, etc.) and optional links.
 
-**Request URL:** `https://cdn.jwplayer.com/v2/playlists/{playlistId}?related_media_id={mediaId}`
+**Request URL:** `https://cdn.jwplayer.com/v2/playlists/{playlistId}?related_media_id={related_media_id}`
 **Method:** `GET`
+**Payload**
+```
+playlistId = "PigFhUBl"
+related_media_id = "HMXtcfG5"
+```
 
 **Response :**
 ```json
@@ -559,49 +663,167 @@ When the user enters a search query, the app calls this API with the search play
 
 **Request URL:** `https://cdn.jwplayer.com/v2/playlists/{searchId}?search={searchKey}`
 **Method:** `GET`
+**Payload**
+```
+searchId = "KgmRCd9H"
+searchKey = "robo"
+```
 
 **Response :**
 ```json
 {
-  "title": "Search Playlist",
-  "description": "",
-  "kind": "SEARCH",
-  "feedid": "KgmRCd9H",
-  "links": {
-    "first": "https://cdn.jwplayer.com/v2/playlists/KgmRCd9H?page_limit=25&page_offset=1&search=a&format=json&internal=false",
-    "last": "...",
-    "next": "..."
-  },
-  "playlist": [
-    {
-      "title": "This is a test media",
-      "mediaid": "toXLmeaF",
-      "image": "https://cdn.jwplayer.com/v2/media/toXLmeaF/poster.jpg?width=720",
-      "contentType": "hub"
+    "title": "Search Playlist",
+    "description": "",
+    "kind": "SEARCH",
+    "feedid": "KgmRCd9H",
+    "links": {
+        "first": "https://cdn.jwplayer.com/v2/playlists/KgmRCd9H?page_limit=25&page_offset=1&search=robo&format=json&internal=false",
+        "last": "https://cdn.jwplayer.com/v2/playlists/KgmRCd9H?page_limit=25&page_offset=1&search=robo&format=json&internal=false"
     },
-    {
-      "title": "A Girl's Guide to Hunting, Fishing, and Wild Cooking",
-      "mediaid": "vYTDBEaq",
-      "image": "https://cdn.jwplayer.com/v2/media/vYTDBEaq/poster.jpg?width=720",
-      "contentType": "series"
-    },
-    {
-      "title": "Tom & Jerry ...",
-      "mediaid": "sMQ5053S",
-      "image": "https://cdn.jwplayer.com/v2/media/sMQ5053S/poster.jpg?width=720",
-      "duration": 1375,
-      "contentType": "movie",
-      "sources": [...]
-    },
-    "..."
-  ],
-  "feed_instance_id": "6e8ba85e-0b0b-4e92-9af1-e288489662d6"
+    "playlist": [
+        {
+            "title": "Robot 2.0",
+            "mediaid": "YvRgLFCV",
+            "link": "https://cdn.jwplayer.com/previews/YvRgLFCV",
+            "image": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.jpg?width=720",
+            "images": [
+                {
+                    "src": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.jpg?width=320",
+                    "width": 320,
+                    "type": "image/jpeg"
+                },
+                {
+                    "src": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.jpg?width=480",
+                    "width": 480,
+                    "type": "image/jpeg"
+                },
+                {
+                    "src": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.jpg?width=640",
+                    "width": 640,
+                    "type": "image/jpeg"
+                },
+                {
+                    "src": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.jpg?width=720",
+                    "width": 720,
+                    "type": "image/jpeg"
+                },
+                {
+                    "src": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.jpg?width=1280",
+                    "width": 1280,
+                    "type": "image/jpeg"
+                },
+                {
+                    "src": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.jpg?width=1920",
+                    "width": 1920,
+                    "type": "image/jpeg"
+                },
+                {
+                    "src": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.mp4?width=320",
+                    "width": 320,
+                    "type": "video/mp4"
+                },
+                {
+                    "src": "https://cdn.jwplayer.com/v2/media/YvRgLFCV/poster.mp4?width=640",
+                    "width": 640,
+                    "type": "video/mp4"
+                }
+            ],
+            "feedid": "KgmRCd9H",
+            "duration": 192,
+            "content_source_type": "file",
+            "pubdate": 1691561024,
+            "updated": 1773222803,
+            "description": "Enthiran 2.0 is a science-fiction action film directed by Shankar and serves as a sequel to the blockbuster movie Enthiran (Robot).\nThe film explores the consequences of uncontrolled technological advancement and humanity’s growing dependence on mobile phones.\nSet primarily in Chennai, the story blends futuristic science with strong social messaging.\nThe narrative begins with the sudden and mysterious phenomenon of mobile phones flying out of people’s hands.\nThese incidents result in chaos, accidents, and widespread panic across the city.\nAs the situation escalates, public safety is severely threatened.\nAuthorities struggle to identify the cause behind these unexplained events.\nThe flying mobiles seem to behave like living entities, attacking humans without mercy.\nHospitals overflow with injured victims, and the city descends into fear.\n\nDr. Vaseegaran, a renowned scientist and robotics expert, is called upon to investigate the phenomenon.\nVaseegaran is known for creating Chitti, the humanoid robot from the previous film.\nHowever, Chitti was dismantled earlier due to ethical concerns.\nAs Vaseegaran begins his research, he realizes the threat is not random.\nThe mobiles are being controlled by a powerful external force.\nThis force is later revealed to be Pakshi Rajan, also known as Birdman.\n\nPakshi Rajan was once an ornithologist dedicated to protecting birds.\nHe witnessed the mass deaths of birds caused by radiation from mobile phone towers.\nIgnored by authorities and ridiculed by society, Pakshi Rajan takes drastic action.\nAfter his death, his spirit merges with electromagnetic energy.\nThis transformation gives him the power to control mobile phones.\nHis goal is to destroy humanity’s technological addiction and avenge the birds.\n\nThe government realizes that conventional weapons are ineffective against this threat.\nAs a last resort, they decide to resurrect Chitti.\nVaseegaran reassembles and reprograms Chitti under strict supervision.\nChitti returns with enhanced intelligence and upgraded abilities.\nHowever, the emotional memory module is initially removed to avoid previous mistakes.\n\nPakshi Rajan grows stronger by absorbing millions of mobile phones.\nHe transforms into a massive, bird-like entity with devastating power.\nEntire cities face the risk of destruction.\nChitti confronts Pakshi Rajan in several intense battles.\nDespite Chitti’s strength, Pakshi Rajan proves to be nearly unstoppable.\n\nRealizing brute force is insufficient, Vaseegaran develops a photon synthesizer.\nThis advanced device is capable of neutralizing electromagnetic energy.\nUsing scientific precision, Vaseegaran and Chitti work together.\nThey aim to counter Pakshi Rajan’s powers rather than destroy him.\nThe final confrontation highlights intelligence over violence.\n\nChitti successfully uses the photon synthesizer to neutralize Pakshi Rajan’s energy.\nPakshi Rajan’s spirit is finally freed from its tormented state.\nThe film ends with a powerful message about responsible technology use.\nIt emphasizes environmental awareness and ethical innovation.\nEnthiran 2.0 concludes as a cautionary tale about progress without accountability.",
+            "sources": [
+                {
+                    "file": "https://cdn.jwplayer.com/manifests/YvRgLFCV.m3u8",
+                    "type": "application/vnd.apple.mpegurl"
+                },
+                {
+                    "file": "https://cdn.jwplayer.com/videos/YvRgLFCV-pIIF3j17.mp4",
+                    "type": "video/mp4",
+                    "height": 180,
+                    "width": 320,
+                    "label": "180p",
+                    "bitrate": 505803,
+                    "filesize": 12139277,
+                    "framerate": 30
+                },
+                {
+                    "file": "https://cdn.jwplayer.com/videos/YvRgLFCV-SJusN1zi.mp4",
+                    "type": "video/mp4",
+                    "height": 270,
+                    "width": 480,
+                    "label": "270p",
+                    "bitrate": 692521,
+                    "filesize": 16620518,
+                    "framerate": 30
+                },
+                {
+                    "file": "https://cdn.jwplayer.com/videos/YvRgLFCV-vtFhjetX.mp4",
+                    "type": "video/mp4",
+                    "height": 720,
+                    "width": 1280,
+                    "label": "720p",
+                    "bitrate": 2246310,
+                    "filesize": 53911452,
+                    "framerate": 30
+                },
+                {
+                    "file": "https://cdn.jwplayer.com/videos/YvRgLFCV-cPApdHJT.m4a",
+                    "type": "audio/mp4",
+                    "label": "AAC Audio",
+                    "bitrate": 113843,
+                    "filesize": 2732237
+                },
+                {
+                    "file": "https://cdn.jwplayer.com/videos/YvRgLFCV-6HoBBkkG.mp4",
+                    "type": "video/mp4",
+                    "height": 360,
+                    "width": 640,
+                    "label": "360p",
+                    "bitrate": 899734,
+                    "filesize": 21593632,
+                    "framerate": 30
+                },
+                {
+                    "file": "https://cdn.jwplayer.com/videos/YvRgLFCV-dvLdqp61.mp4",
+                    "type": "video/mp4",
+                    "height": 540,
+                    "width": 960,
+                    "label": "540p",
+                    "bitrate": 1519685,
+                    "filesize": 36472448,
+                    "framerate": 30
+                }
+            ],
+            "tracks": [
+                {
+                    "file": "https://cdn.jwplayer.com/strips/YvRgLFCV-120.vtt",
+                    "kind": "thumbnails"
+                }
+            ],
+            "variations": {},
+            "adEnabled": "true",
+            "contentType": "movie",
+            "genre": "Science fiction",
+            "rating": "PG",
+            "audio_language": "English , Tamil , Spanish",
+            "cast": "Vin Diesel, Paul Walker, Michelle Rodriguez , Jordana Brewster, Rick Yune,  Chad Lindberg , Johnny Strong , Jack Conley",
+            "director": "David , Vin Diesel, Paul Walker, Michelle Rodriguez , Jordana Brewster, Rick Yune,  Chad Lindberg , Johnny Strong , Jack Conley",
+            "producer": "Warner Bros , Vin Diesel, Paul Walker, Michelle Rodriguez , Jordana Brewster, Rick Yune,  Chad Lindberg , Johnny Strong , Jack Conley",
+            "studio": "Warner Bros Studios",
+            "sub_title": "English, Spanish",
+            "trailerId": "8fZXbtr8",
+            "free": "false"
+        }
+    ],
+    "feed_instance_id": "efd69077-03cc-4ecc-836d-8240cd9f7ae0"
 }
 ```
 
 Notes: searchId is the search playlist ID from config (features.searchPlaylist); searchKey is the user’s search query. Results in playlist can be movie, series, episode, hub, liveEvent, trailer, etc. Each item has title, mediaid, image, and optionally sources, duration, description. The response shape matches the standard playlist response (playlist array, links).
 
-**Alternative (site-scoped search):** Some apps use the App Content Search API instead: `GET https://cdn.jwplayer.com/v2/sites/{siteId}/app_content/media/search?search_query={searchKey}` The config’s siteId is used; response shape may differ slightly.
 
 ---
 
@@ -613,9 +835,33 @@ Before playing protected content, the app checks whether the user has access (Co
 
 1. **Access check (InPlayer)** — When the user tries to play, the app calls the Content Access endpoint. That answers whether the user is allowed to play this product. If not, the app shows a paywall and does not continue.
 2. **DRM token (InPlayer)** — If access is granted and the content is DRM-protected, the app requests a short-lived token from the auth backend (app_config_id, media_id). That token proves to JW Player that this user may get DRM playback for this media.
-3. **JW Player DRM URL (Delivery API)** — The app calls the JW Delivery API with the token: `GET https://cdn.jwplayer.com/v2/media/{mediaId}/drm/{drmPolicyId}?token={token}`. JW returns playback JSON (metadata, manifest URLs, license acquisition URLs). The player uses this to decrypt and play. For DRM, JW requires the request to be signed (the token does this); returned media and license URLs are time-limited (e.g. valid for about 10 minutes). For playlists of DRM content, JW exposes a playlist endpoint that returns the same kind of signed, time-limited data for multiple items. See [JW Player DRM Playlist objects](https://docs.jwplayer.com/platform/reference/get_v2-playlists-playlist-id-drm-policy-id).
+3. **JW Player DRM URL (Delivery API)** — The app calls the JW Delivery API with the token.
+```
+GET https://cdn.jwplayer.com/v2/media/{mediaId}/drm/{drmPolicyId}?token={token}
+```
 
-**SSAI + DRM:** When server-side ad insertion (SSAI) is enabled with DRM, the app may use the playback endpoint instead: `GET https://cdn.jwplayer.com/v2/sites/{siteId}/media/{mediaId}/playback.json` with query params token, drm_policy_id, and ad_config_id. The response includes signed playback and ad configuration.
+
+**Payload**
+```
+mediaId = "VV8Vy1Zi"
+drmPolicyId = "iKZNk91d"
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjcmVhdG9yIjoiaW5wbGF5ZXIiLCJleHAiOjE3NzQ1MzMwMDAsInJlc291cmNlIjoiL3YyL21lZGlhL1ZWOFZ5MVppL2RybS9pS1pOazkxZCJ9.cXmtgf2cIxr2H2LbuVfrI-Awce4RB2SSwhH1esWq3h8"
+```
+JW returns playback JSON (metadata, manifest URLs, license acquisition URLs). The player uses this to decrypt and play. For DRM, JW requires the request to be signed (the token does this); returned media and license URLs are time-limited (e.g. valid for about 10 minutes). For playlists of DRM content, JW exposes a playlist endpoint that returns the same kind of signed, time-limited data for multiple items. See [JW Player DRM Playlist objects](https://docs.jwplayer.com/platform/reference/get_v2-playlists-playlist-id-drm-policy-id).
+
+
+**SSAI + DRM:** When server-side ad insertion (SSAI) is enabled with DRM, the app may use the playback endpoint instead
+```
+GET https://cdn.jwplayer.com/v2/sites/{siteId}/media/{mediaId}/playback.json?token={token}&drm_policy_id={drm_policy_id}&ad_config_id={ad_config_id}
+```
+```
+siteId = "z1RVAXZN"
+mediaId = "VV8Vy1Zi"
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyZXNvdXJjZSI6Ii92Mi9zaXRlcy96MVJWQVhaTi9tZWRpYS9WVjhWeTFaaS9wbGF5YmFjay5qc29uIiwiZHJtX3BvbGljeV9pZCI6ImlLWk5rOTFkIiwiYWRfY29uZmlnX2lkIjoieklFNDVRQjIiLCJleHAiOjE3NzQ1MjM0MDB9.0bX2A3EaVRIcE-mbMtPRSYL10RXfsuudpmkqeS29nv4"
+drm_policy_id = "iKZNk91d"
+ad_config_id =  "zIE45QB2"
+```
+ with query params token, drm_policy_id, and ad_config_id. The response includes signed playback and ad configuration.
 
 ### Content Access Check
 
@@ -643,7 +889,7 @@ For DRM-protected streams, the app gets a token from the auth backend before cal
 **Payload:**
 ```json
 {
-  "app_config_id":"****",
+  "app_config_id":"ffuxvbfv",
   "media_id": "hkJH3ic1"
 }
 ```
